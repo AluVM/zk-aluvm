@@ -1,0 +1,91 @@
+// AluVM extensions for zero knowledge, STARKs and SNARKs"
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+// Designed in 2024-2025 by Dr Maxim Orlovsky <orlovsky@ubideco.org>
+// Written in 2024-2025 by Dr Maxim Orlovsky <orlovsky@ubideco.org>
+//
+// Copyright (C) 2024-2025 Laboratories for Ubiquitous Deterministic Computing (UBIDECO),
+//                         Institute for Distributed and Cognitive Systems (InDCS), Switzerland.
+// Copyright (C) 2024-2025 Dr Maxim Orlovsky.
+// All rights under the above copyrights are reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+// in compliance with the License. You may obtain a copy of the License at
+//
+//        http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distributed under the License
+// is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+// or implied. See the License for the specific language governing permissions and limitations under
+// the License.
+
+use alloc::collections::BTreeSet;
+
+use aluvm::isa::{ExecStep, Instruction};
+use aluvm::regs::Status;
+use aluvm::{Core, Site, SiteId};
+
+use super::{FieldInstr, ISA_GFA128};
+use crate::{GfaCore, RegE};
+
+impl<Id: SiteId> Instruction<Id> for FieldInstr {
+    const ISA_EXT: &'static [&'static str] = &[ISA_GFA128];
+    type Core = GfaCore;
+    type Context<'ctx> = ();
+
+    fn src_regs(&self) -> BTreeSet<RegE> {
+        match *self {
+            FieldInstr::Fits { src, bits: _ }
+            | FieldInstr::NegMod { dst: _, src }
+            | FieldInstr::AddMod { dst: _, src }
+            | FieldInstr::MulMod { dst: _, src } => bset![src],
+        }
+    }
+
+    fn dst_regs(&self) -> BTreeSet<RegE> {
+        match *self {
+            FieldInstr::Fits { src: _, bits: _ } => none!(),
+            FieldInstr::NegMod { dst, src: _ }
+            | FieldInstr::AddMod { dst, src: _ }
+            | FieldInstr::MulMod { dst, src: _ } => bset![dst],
+        }
+    }
+
+    fn op_data_bytes(&self) -> u16 {
+        match self {
+            FieldInstr::Fits { src: _, bits: _ } => 1,
+            FieldInstr::NegMod { dst: _, src: _ }
+            | FieldInstr::AddMod { dst: _, src: _ }
+            | FieldInstr::MulMod { dst: _, src: _ } => 0,
+        }
+    }
+
+    fn ext_data_bytes(&self) -> u16 { 0 }
+
+    fn complexity(&self) -> u64 {
+        // Double the default complexity since each instruction performs two operations (and each arithmetic
+        // operations is x10 of move operation).
+        Instruction::<Id>::base_complexity(self) * 20
+    }
+
+    fn exec(&self, core: &mut Core<Id, GfaCore>, _: Site<Id>, _: &Self::Context<'_>) -> ExecStep<Site<Id>> {
+        let res = match *self {
+            FieldInstr::Fits { src, bits } => match core.cx.fits(src, bits) {
+                None => Status::Fail,
+                Some(fits) => {
+                    core.set_co(!fits);
+                    Status::Ok
+                }
+            },
+            FieldInstr::NegMod { dst, src } => core.cx.neg_mod(dst, src),
+            FieldInstr::AddMod { dst, src } => core.cx.add_mod(dst, src),
+            FieldInstr::MulMod { dst, src } => core.cx.mul_mod(dst, src),
+        };
+        if res == Status::Ok {
+            ExecStep::Next
+        } else {
+            ExecStep::FailContinue
+        }
+    }
+}

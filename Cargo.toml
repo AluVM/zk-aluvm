@@ -1,0 +1,45 @@
+[package]
+name = "zk-aluvm"
+description = "AluVM extensions for zero knowledge, STARKs and SNARKs"
+version = "0.12.0-beta.1"
+authors = ["Dr Maxim Orlovsky <orlovsky@ubideco.org>"]
+repository = "https://github.com/aluvm/zk-aluvm"
+homepage = "https://aluvm.org"
+keywords = ["virtual-machine", "emulator", "functional", "risc", "zero-knowledge"]
+categories = ["no-std", "embedded", "compilers", "cryptography", "emulators"]
+rust-version = "1.77.0"
+edition = "2021"
+license = "Apache-2.0"
+readme = "README.md"
+exclude = [".github"]
+
+[lib]
+name = "zkaluvm"
+
+[dependencies]
+amplify = { version = "~4.8.0", default-features = false, features = ["derive"] }
+aluvm = "0.12.0-beta.1"
+
+[features]
+default = []
+all = ["armor", "std", "log", "serde"]
+
+armor = ["aluvm/armor"]
+std = ["aluvm/std", "amplify/std"]
+log = ["aluvm/log"]
+alloc = ["aluvm/alloc", "amplify/alloc"]
+serde = ["aluvm/serde"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+rand = { version = "0.8.4", optional = true }
+getrandom = { version = "0.2", features = ["js"] }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[package.metadata.docs.rs]
+features = ["all"]
+
+[patch.crates-io]
+aluvm = { git = "https://github.com/AluVM/rust-aluvm", branch = "v0.12" }
