@@ -37,8 +37,7 @@ extern crate alloc;
 extern crate amplify;
 
 mod core;
-#[macro_use]
-pub mod isa;
+pub mod gfa;
 
 pub use aluvm::*;
 

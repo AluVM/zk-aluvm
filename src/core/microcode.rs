@@ -23,7 +23,7 @@
 use aluvm::regs::Status;
 use aluvm::CoreExt;
 
-use crate::isa::Bits;
+use crate::gfa::Bits;
 use crate::{fe128, GfaCore, RegE};
 
 /// Microcode for finite field arithmetics.
