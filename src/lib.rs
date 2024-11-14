@@ -35,6 +35,11 @@ extern crate alloc;
 
 #[macro_use]
 extern crate amplify;
+#[macro_use]
+extern crate strict_encoding;
+#[cfg(feature = "serde")]
+#[macro_use]
+extern crate serde;
 
 mod core;
 pub mod gfa;
@@ -46,4 +51,7 @@ pub use self::core::{GfaCore, RegE};
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Display)]
 #[display("{0:X}")]
+#[derive(StrictType, StrictDumb, StrictEncode, StrictDecode)]
+#[strict_type(lib = "FiniteField")]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct fe128(pub u128);

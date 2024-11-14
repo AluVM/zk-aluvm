@@ -798,6 +798,8 @@ dependencies = [
  "amplify",
  "getrandom",
  "rand",
+ "serde",
+ "strict_encoding",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
