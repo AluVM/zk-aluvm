@@ -22,7 +22,7 @@
 
 use core::fmt::{self, Debug, Formatter};
 
-use aluvm::{CoreExt, Register};
+use aluvm::{CoreExt, NoExt, Register};
 use amplify::num::u4;
 
 use crate::fe128;
@@ -85,6 +85,10 @@ impl Debug for GfaCore {
         }
         writeln!(f)
     }
+}
+
+impl From<GfaCore> for NoExt {
+    fn from(_: GfaCore) -> Self { NoExt }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Display)]

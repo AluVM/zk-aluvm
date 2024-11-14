@@ -24,9 +24,9 @@ use alloc::collections::BTreeSet;
 
 use aluvm::isa::{ExecStep, Instruction};
 use aluvm::regs::Status;
-use aluvm::{Core, Site, SiteId};
+use aluvm::{Core, CoreExt, Site, SiteId};
 
-use super::{FieldInstr, ISA_GFA128};
+use super::{FieldInstr, Instr, ISA_GFA128};
 use crate::{GfaCore, RegE};
 
 impl<Id: SiteId> Instruction<Id> for FieldInstr {
@@ -86,6 +86,67 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             ExecStep::Next
         } else {
             ExecStep::FailContinue
+        }
+    }
+}
+
+impl<Id: SiteId> Instruction<Id> for Instr<Id> {
+    const ISA_EXT: &'static [&'static str] = &[ISA_GFA128];
+    type Core = GfaCore;
+    type Context<'ctx> = ();
+
+    fn src_regs(&self) -> BTreeSet<<Self::Core as CoreExt>::Reg> {
+        match self {
+            Instr::Ctrl(_) => none!(),
+            Instr::Gfa(instr) => Instruction::<Id>::src_regs(instr),
+            Instr::Reserved(_) => none!(),
+        }
+    }
+
+    fn dst_regs(&self) -> BTreeSet<<Self::Core as CoreExt>::Reg> {
+        match self {
+            Instr::Ctrl(_) => none!(),
+            Instr::Gfa(instr) => Instruction::<Id>::dst_regs(instr),
+            Instr::Reserved(_) => none!(),
+        }
+    }
+
+    fn op_data_bytes(&self) -> u16 {
+        match self {
+            Instr::Ctrl(instr) => instr.op_data_bytes(),
+            Instr::Gfa(instr) => Instruction::<Id>::op_data_bytes(instr),
+            Instr::Reserved(_) => none!(),
+        }
+    }
+
+    fn ext_data_bytes(&self) -> u16 {
+        match self {
+            Instr::Ctrl(instr) => instr.ext_data_bytes(),
+            Instr::Gfa(instr) => Instruction::<Id>::ext_data_bytes(instr),
+            Instr::Reserved(_) => none!(),
+        }
+    }
+
+    fn exec(&self, site: Site<Id>, core: &mut Core<Id, Self::Core>, context: &Self::Context<'_>) -> ExecStep<Site<Id>> {
+        match self {
+            Instr::Ctrl(instr) => {
+                let mut subcore = Core::from(core.clone());
+                let step = instr.exec(site, &mut subcore, context);
+                *core = subcore.extend(core.cx.clone());
+                step
+            }
+            Instr::Gfa(instr) => {
+                let mut subcore = Core::from(core.clone());
+                let step = instr.exec(site, &mut subcore, context);
+                *core = subcore.extend(core.cx.clone());
+                step
+            }
+            Instr::Reserved(instr) => {
+                let mut subcore = Core::from(core.clone());
+                let step = instr.exec(site, &mut subcore, context);
+                *core = subcore.extend(core.cx.clone());
+                step
+            }
         }
     }
 }

@@ -20,9 +20,27 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use aluvm::isa::{CtrlInstr, ReservedInstr};
+use aluvm::SiteId;
 use amplify::num::u4;
 
 use crate::RegE;
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display, From)]
+#[display(inner)]
+#[non_exhaustive]
+pub enum Instr<Id: SiteId> {
+    /// Control flow instructions.
+    #[from]
+    Ctrl(CtrlInstr<Id>),
+
+    #[from]
+    Gfa(FieldInstr),
+
+    /// Reserved instruction for future use in core `ALU` ISAs.
+    #[from]
+    Reserved(ReservedInstr),
+}
 
 /// Arithmetic instructions for finite fields.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]

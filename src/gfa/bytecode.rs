@@ -22,10 +22,10 @@
 
 use core::ops::RangeInclusive;
 
-use aluvm::isa::{Bytecode, BytecodeRead, BytecodeWrite, CodeEofError};
+use aluvm::isa::{Bytecode, BytecodeRead, BytecodeWrite, CodeEofError, CtrlInstr, ReservedInstr};
 use aluvm::SiteId;
 
-use super::{Bits, FieldInstr};
+use super::{Bits, FieldInstr, Instr};
 use crate::RegE;
 
 impl FieldInstr {
@@ -101,5 +101,42 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
             }
             _ => unreachable!(),
         })
+    }
+}
+
+impl<Id: SiteId> Bytecode<Id> for Instr<Id> {
+    fn op_range() -> RangeInclusive<u8> { 0..=0xFF }
+
+    fn opcode_byte(&self) -> u8 {
+        match self {
+            Instr::Ctrl(instr) => instr.opcode_byte(),
+            Instr::Gfa(instr) => Bytecode::<Id>::opcode_byte(instr),
+            Instr::Reserved(instr) => Bytecode::<Id>::opcode_byte(instr),
+        }
+    }
+
+    fn encode_operands<W>(&self, writer: &mut W) -> Result<(), W::Error>
+    where W: BytecodeWrite<Id> {
+        match self {
+            Instr::Ctrl(instr) => instr.encode_operands(writer),
+            Instr::Gfa(instr) => instr.encode_operands(writer),
+            Instr::Reserved(instr) => instr.encode_operands(writer),
+        }
+    }
+
+    fn decode_operands<R>(reader: &mut R, opcode: u8) -> Result<Self, CodeEofError>
+    where
+        Self: Sized,
+        R: BytecodeRead<Id>,
+    {
+        match opcode {
+            op if CtrlInstr::<Id>::op_range().contains(&op) => {
+                CtrlInstr::<Id>::decode_operands(reader, op).map(Self::Ctrl)
+            }
+            op if <FieldInstr as Bytecode<Id>>::op_range().contains(&op) => {
+                FieldInstr::decode_operands(reader, op).map(Self::Gfa)
+            }
+            _ => ReservedInstr::decode_operands(reader, opcode).map(Self::Reserved),
+        }
     }
 }
