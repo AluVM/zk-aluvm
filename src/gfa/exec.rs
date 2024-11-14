@@ -69,7 +69,7 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
         Instruction::<Id>::base_complexity(self) * 20
     }
 
-    fn exec(&self, core: &mut Core<Id, GfaCore>, _: Site<Id>, _: &Self::Context<'_>) -> ExecStep<Site<Id>> {
+    fn exec(&self, _: Site<Id>, core: &mut Core<Id, GfaCore>, _: &mut Self::Context<'_>) -> ExecStep<Site<Id>> {
         let res = match *self {
             FieldInstr::Fits { src, bits } => match core.cx.fits(src, bits) {
                 None => Status::Fail,
