@@ -45,5 +45,5 @@ pub use self::core::{GfaCore, RegE};
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Display)]
-#[display(inner)]
+#[display("{0:X}")]
 pub struct fe128(pub u128);

@@ -20,12 +20,14 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+use core::fmt::{self, Debug, Formatter};
+
 use aluvm::{CoreExt, Register};
 use amplify::num::u4;
 
 use crate::fe128;
 
-#[derive(Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct GfaCore {
     pub(super) fq: u128,
     pub(super) e: [Option<fe128>; 16],
@@ -63,6 +65,26 @@ impl CoreExt for GfaCore {
 
     #[inline]
     fn reset(&mut self) { self.e = [None; 16]; }
+}
+
+impl Debug for GfaCore {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let (sect, reg, val, reset) =
+            if f.alternate() { ("\x1B[0;4;1m", "\x1B[0;1m", "\x1B[0;32m", "\x1B[0m") } else { ("", "", "", "") };
+
+        writeln!(f)?;
+        writeln!(f, "{reg}FQ{reset} {val}{:X}{reset}#h", self.fq)?;
+        writeln!(f, "{sect}E-regs:{reset}")?;
+        for (no, item) in self.e.iter().enumerate() {
+            write!(f, "{reg}{}{reset} ", RegE::from(u4::with(no as u8)))?;
+            if let Some(e) = item {
+                writeln!(f, "{val}{e}{reset}#h")?;
+            } else {
+                writeln!(f, "~")?;
+            }
+        }
+        writeln!(f)
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Display)]
