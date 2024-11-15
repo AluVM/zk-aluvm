@@ -36,6 +36,7 @@ jobs:
         feature:
           - log
           - armor
+          - stl
           - serde
     steps:
       - uses: actions/checkout@v4

@@ -800,6 +800,7 @@ dependencies = [
  "rand",
  "serde",
  "strict_encoding",
+ "strict_types",
  "wasm-bindgen",
  "wasm-bindgen-test",
 ]
