@@ -54,7 +54,7 @@ pub use self::core::{GfaCore, RegE};
 pub const LIB_NAME_FINITE_FIELD: &str = "FiniteField";
 
 #[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Display)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Display)]
 #[display("{0:X}")]
 #[derive(StrictDumb, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_FINITE_FIELD)]
