@@ -24,16 +24,16 @@
 use strict_types::typelib::{CompileError, LibBuilder};
 use strict_types::TypeLib;
 
-use crate::{fe128, LIB_NAME_FINITE_FIELD};
+use crate::{fe256, LIB_NAME_FINITE_FIELD};
 
 /// Strict type id for the lib-old providing data types from this crate.
-pub const LIB_ID_FINITE_FIELD: &str = "stl:XGBLRAOh-2fiHGiJ-Yo8SHTz-XCuR025-TuPI~1x-FhMcnp0#tomato-jeep-thomas";
+pub const LIB_ID_FINITE_FIELD: &str = "stl:Nm0yhN4V-rj3RTrE-tXIS14e-JV1OFTx-zPNhRZU-54QW0tg#report-canal-convert";
 
 fn _finite_field_stl() -> Result<TypeLib, CompileError> {
     LibBuilder::new(LIB_NAME_FINITE_FIELD, tiny_bset! {
         strict_types::stl::std_stl().to_dependency(),
     })
-    .transpile::<fe128>()
+    .transpile::<fe256>()
     .compile()
 }
 

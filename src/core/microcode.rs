@@ -22,20 +22,21 @@
 
 use aluvm::regs::Status;
 use aluvm::CoreExt;
+use amplify::num::u256;
 
 use crate::gfa::Bits;
-use crate::{fe128, GfaCore, RegE};
+use crate::{fe256, GfaCore, RegE};
 
 /// Microcode for finite field arithmetics.
 impl GfaCore {
-    pub fn fq(&self) -> u128 { self.fq }
+    pub fn fq(&self) -> u256 { self.fq }
 
     pub fn fits(&self, src: RegE, bits: Bits) -> Option<bool> {
         let order = self.fq();
         let a = self.get(src)?;
         debug_assert!(a.0 < order);
-        let check = a.0 >> bits as u8 * 8;
-        Some(check == 0)
+        let check = a.0 >> (bits as u8 * 8) as usize;
+        Some(check == u256::ZERO)
     }
 
     #[inline]
@@ -53,11 +54,11 @@ impl GfaCore {
 
         let (mut res, overflow) = a.0.overflowing_add(b.0);
         if overflow {
-            res += u128::MAX - order;
+            res += u256::MAX - order;
         }
 
         let res = res % order;
-        self.set(dst, fe128(res));
+        self.set(dst, fe256(res));
         Status::Ok
     }
 
@@ -77,7 +78,7 @@ impl GfaCore {
         let (res, _) = mul_mod_int(order, a.0, b.0);
 
         let res = res % order;
-        self.set(dst, fe128(res));
+        self.set(dst, fe256(res));
         Status::Ok
     }
 
@@ -92,15 +93,15 @@ impl GfaCore {
         debug_assert!(a.0 < order);
 
         let res = order - a.0;
-        self.set(dst, fe128(res));
+        self.set(dst, fe256(res));
         Status::Ok
     }
 }
 
-fn mul_mod_int(order: u128, a: u128, b: u128) -> (u128, bool) {
+fn mul_mod_int(order: u256, a: u256, b: u256) -> (u256, bool) {
     let (mut res, overflow) = a.overflowing_mul(b);
     if overflow {
-        let rem = u128::MAX - order;
+        let rem = u256::MAX - order;
         res = mul_mod_int(order, res, rem).0;
     }
     (res % order, overflow)

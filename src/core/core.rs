@@ -23,19 +23,19 @@
 use core::fmt::{self, Debug, Formatter};
 
 use aluvm::{CoreExt, NoExt, Register};
-use amplify::num::u4;
+use amplify::num::{u256, u4};
 
-use crate::fe128;
+use crate::fe256;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct GfaCore {
-    pub(super) fq: u128,
-    pub(super) e: [Option<fe128>; 16],
+    pub(super) fq: u256,
+    pub(super) e: [Option<fe256>; 16],
 }
 
 impl CoreExt for GfaCore {
     type Reg = RegE;
-    type Config = u128; // Field order
+    type Config = u256; // Field order
 
     #[inline]
     fn with(config: Self::Config) -> Self {
@@ -46,17 +46,17 @@ impl CoreExt for GfaCore {
     }
 
     #[inline]
-    fn get(&self, reg: Self::Reg) -> Option<fe128> { self.e[reg as usize] }
+    fn get(&self, reg: Self::Reg) -> Option<fe256> { self.e[reg as usize] }
 
     #[inline]
-    fn clr(&mut self, reg: Self::Reg) -> Option<fe128> {
+    fn clr(&mut self, reg: Self::Reg) -> Option<fe256> {
         let prev = self.e[reg as usize];
         self.e[reg as usize] = None;
         prev
     }
 
     #[inline]
-    fn set(&mut self, reg: Self::Reg, val: fe128) -> Option<fe128> {
+    fn set(&mut self, reg: Self::Reg, val: fe256) -> Option<fe256> {
         assert!(val.0 < self.fq);
         let prev = self.e[reg as usize];
         self.e[reg as usize] = Some(val);
@@ -114,7 +114,7 @@ pub enum RegE {
 }
 
 impl Register for RegE {
-    type Value = fe128;
+    type Value = fe256;
 
     #[inline]
     fn bytes(self) -> u16 { 16 }

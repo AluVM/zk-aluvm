@@ -47,6 +47,7 @@ pub mod gfa;
 pub mod zkstl;
 
 pub use aluvm::*;
+use amplify::num::u256;
 use strict_encoding::{StrictProduct, StrictTuple, StrictType, TypeName};
 
 pub use self::core::{GfaCore, RegE};
@@ -59,13 +60,13 @@ pub const LIB_NAME_FINITE_FIELD: &str = "FiniteField";
 #[derive(StrictDumb, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_FINITE_FIELD)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct fe128(pub u128);
+pub struct fe256(pub u256);
 
-impl StrictType for fe128 {
+impl StrictType for fe256 {
     const STRICT_LIB_NAME: &'static str = LIB_NAME_FINITE_FIELD;
-    fn strict_name() -> Option<TypeName> { Some(tn!("Fe128")) }
+    fn strict_name() -> Option<TypeName> { Some(tn!("Fe256")) }
 }
-impl StrictProduct for fe128 {}
-impl StrictTuple for fe128 {
+impl StrictProduct for fe256 {}
+impl StrictTuple for fe256 {
     const FIELD_COUNT: u8 = 1;
 }
