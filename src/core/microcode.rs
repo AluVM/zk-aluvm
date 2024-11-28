@@ -34,8 +34,8 @@ impl GfaCore {
     pub fn fits(&self, src: RegE, bits: Bits) -> Option<bool> {
         let order = self.fq();
         let a = self.get(src)?;
-        debug_assert!(a.0 < order);
-        let check = a.0 >> (bits as u8 * 8) as usize;
+        debug_assert!(a.to_u256() < order);
+        let check = a.to_u256() >> (bits as u8 * 8) as usize;
         Some(check == u256::ZERO)
     }
 
@@ -50,15 +50,17 @@ impl GfaCore {
             return Status::Fail;
         };
 
-        debug_assert!(a.0 < order && b.0 < order);
+        let a = a.to_u256();
+        let b = b.to_u256();
+        debug_assert!(a < order && b < order);
 
-        let (mut res, overflow) = a.0.overflowing_add(b.0);
+        let (mut res, overflow) = a.overflowing_add(b);
         if overflow {
             res += u256::MAX - order;
         }
 
         let res = res % order;
-        self.set(dst, fe256(res));
+        self.set(dst, fe256::from(res));
         Status::Ok
     }
 
@@ -73,12 +75,14 @@ impl GfaCore {
             return Status::Fail;
         };
 
-        debug_assert!(a.0 < order && b.0 < order);
+        let a = a.to_u256();
+        let b = b.to_u256();
+        debug_assert!(a < order && b < order);
 
-        let (res, _) = mul_mod_int(order, a.0, b.0);
+        let (res, _) = mul_mod_int(order, a, b);
 
         let res = res % order;
-        self.set(dst, fe256(res));
+        self.set(dst, fe256::from(res));
         Status::Ok
     }
 
@@ -90,10 +94,10 @@ impl GfaCore {
             return Status::Fail;
         };
 
-        debug_assert!(a.0 < order);
+        debug_assert!(a.to_u256() < order);
 
-        let res = order - a.0;
-        self.set(dst, fe256(res));
+        let res = order - a.to_u256();
+        self.set(dst, fe256::from(res));
         Status::Ok
     }
 }

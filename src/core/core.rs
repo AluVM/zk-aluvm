@@ -57,7 +57,7 @@ impl CoreExt for GfaCore {
 
     #[inline]
     fn set(&mut self, reg: Self::Reg, val: fe256) -> Option<fe256> {
-        assert!(val.0 < self.fq);
+        assert!(val.to_u256() < self.fq);
         let prev = self.e[reg as usize];
         self.e[reg as usize] = Some(val);
         prev

@@ -37,36 +37,16 @@ extern crate alloc;
 extern crate amplify;
 #[macro_use]
 extern crate strict_encoding;
-#[cfg(feature = "serde")]
-#[macro_use]
-extern crate serde;
 
 mod core;
 pub mod gfa;
 #[cfg(feature = "stl")]
 pub mod zkstl;
+mod fe;
 
 pub use aluvm::*;
-use amplify::num::u256;
-use strict_encoding::{StrictProduct, StrictTuple, StrictType, TypeName};
+pub use fe::{fe256, ParseFeError};
 
 pub use self::core::{GfaCore, RegE};
 
 pub const LIB_NAME_FINITE_FIELD: &str = "FiniteField";
-
-#[allow(non_camel_case_types)]
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Display)]
-#[display("{0:X}")]
-#[derive(StrictDumb, StrictEncode, StrictDecode)]
-#[strict_type(lib = LIB_NAME_FINITE_FIELD)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct fe256(pub u256);
-
-impl StrictType for fe256 {
-    const STRICT_LIB_NAME: &'static str = LIB_NAME_FINITE_FIELD;
-    fn strict_name() -> Option<TypeName> { Some(tn!("Fe256")) }
-}
-impl StrictProduct for fe256 {}
-impl StrictTuple for fe256 {
-    const FIELD_COUNT: u8 = 1;
-}
