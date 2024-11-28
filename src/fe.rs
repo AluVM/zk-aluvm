@@ -22,6 +22,8 @@
 
 use core::str::FromStr;
 
+use amplify::confinement::TinyBlob;
+use amplify::hex::FromHex;
 use amplify::num::u256;
 use amplify::{hex, Bytes32, Wrapper};
 use strict_encoding::{
@@ -159,8 +161,13 @@ impl FromStr for fe256 {
         let s = s
             .strip_suffix(".fe")
             .ok_or_else(|| ParseFeError::NoSuffix(s.to_owned()))?;
-        let bytes = Bytes32::from_str(s)?;
-        let val = u256::from_le_bytes(bytes.into_inner());
+        let bytes = if s.len() % 2 == 1 { TinyBlob::from_hex(&format!("0{s}"))? } else { TinyBlob::from_hex(s)? };
+        let mut buf = [0u8; 32];
+        if bytes.len() > 32 {
+            return Err(hex::Error::InvalidLength(32, bytes.len()).into());
+        }
+        buf[..bytes.len()].copy_from_slice(bytes.as_slice());
+        let val = u256::from_le_bytes(buf);
         if !Self::test_value(val) {
             return Err(ParseFeError::Overflow(val));
         }
