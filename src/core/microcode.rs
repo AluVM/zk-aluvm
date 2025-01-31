@@ -40,10 +40,10 @@ impl GfaCore {
     }
 
     #[inline]
-    pub fn add_mod(&mut self, dst: RegE, src: RegE) -> Status {
+    pub fn add_mod(&mut self, dst_src: RegE, src: RegE) -> Status {
         let order = self.fq();
 
-        let Some(a) = self.get(dst) else {
+        let Some(a) = self.get(dst_src) else {
             return Status::Fail;
         };
         let Some(b) = self.get(src) else {
@@ -60,15 +60,15 @@ impl GfaCore {
         }
 
         let res = res % order;
-        self.set(dst, fe256::from(res));
+        self.set(dst_src, fe256::from(res));
         Status::Ok
     }
 
     #[inline]
-    pub fn mul_mod(&mut self, dst: RegE, src: RegE) -> Status {
+    pub fn mul_mod(&mut self, dst_src: RegE, src: RegE) -> Status {
         let order = self.fq();
 
-        let Some(a) = self.get(dst) else {
+        let Some(a) = self.get(dst_src) else {
             return Status::Fail;
         };
         let Some(b) = self.get(src) else {
@@ -82,12 +82,12 @@ impl GfaCore {
         let (res, _) = mul_mod_int(order, a, b);
 
         let res = res % order;
-        self.set(dst, fe256::from(res));
+        self.set(dst_src, fe256::from(res));
         Status::Ok
     }
 
     #[inline]
-    pub fn neg_mod(&mut self, dst: RegE, src: RegE) -> Status {
+    pub fn neg_mod(&mut self, dst_src: RegE, src: RegE) -> Status {
         let order = self.fq();
 
         let Some(a) = self.get(src) else {
@@ -97,7 +97,7 @@ impl GfaCore {
         debug_assert!(a.to_u256() < order);
 
         let res = order - a.to_u256();
-        self.set(dst, fe256::from(res));
+        self.set(dst_src, fe256::from(res));
         Status::Ok
     }
 }

@@ -26,41 +26,41 @@ macro_rules! instr {
     // Modulo-increment
     (incmod $A:ident : $idx:literal, $val:literal) => {
         #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::IncMod { src_dst: a!($A : $idx), val: $val })
+        Instr::GFqA(FieldInstr::IncMod { dst_src: a!($A : $idx), val: $val })
     };
     (incmod $A:ident : $idx:ident, $val:literal) => {
         #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::IncMod { src_dst: a!($A : $idx), val: $val })
+        Instr::GFqA(FieldInstr::IncMod { dst_src: a!($A : $idx), val: $val })
     };
     (incmod $A:ident . $idx:ident, $val:literal) => {
         #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::IncMod { src_dst: a!($A . $idx), val: $val })
+        Instr::GFqA(FieldInstr::IncMod { dst_src: a!($A . $idx), val: $val })
     };
     // Modulo-decrement
     (decmod $A:ident : $idx:literal, $val:literal) => {
         #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::DecMod { src_dst: a!($A : $idx), val: $val })
+        Instr::GFqA(FieldInstr::DecMod { dst_src: a!($A : $idx), val: $val })
     };
     (decmod $A:ident : $idx:ident, $val:literal) => {
         #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::DecMod { src_dst: a!($A : $idx), val: $val })
+        Instr::GFqA(FieldInstr::DecMod { dst_src: a!($A : $idx), val: $val })
     };
     (decmod $A:ident . $idx:ident, $val:literal) => {
         #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::DecMod { src_dst: a!($A . $idx), val: $val })
+        Instr::GFqA(FieldInstr::DecMod { dst_src: a!($A . $idx), val: $val })
     };
     // Modulo-negate
     (negmod $A:ident : $idx:literal) => {
         #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::NegMod { src_dst: a!($A : $idx) })
+        Instr::GFqA(FieldInstr::NegMod { dst_src: a!($A : $idx) })
     };
     (negmod $A:ident : $idx:ident) => {
         #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::NegMod { src_dst: a!($A : $idx) })
+        Instr::GFqA(FieldInstr::NegMod { dst_src: a!($A : $idx) })
     };
     (negmod $A:ident . $idx:ident) => {
         #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::NegMod { src_dst: a!($A . $idx) })
+        Instr::GFqA(FieldInstr::NegMod { dst_src: a!($A . $idx) })
     };
     // Modulo-add
     (addmod A128 : $dst:literal, A128 : $src1:literal, A128 : $src2:literal) => {

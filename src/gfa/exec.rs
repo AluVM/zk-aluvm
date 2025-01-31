@@ -37,9 +37,9 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
     fn src_regs(&self) -> BTreeSet<RegE> {
         match *self {
             FieldInstr::Fits { src, bits: _ }
-            | FieldInstr::NegMod { dst: _, src }
-            | FieldInstr::AddMod { dst: _, src }
-            | FieldInstr::MulMod { dst: _, src } => bset![src],
+            | FieldInstr::NegMod { dst: _, src } => bset![src],
+            FieldInstr::AddMod { dst_src, src }
+            | FieldInstr::MulMod { dst_src, src } => bset![src, dst_src],
         }
     }
 
@@ -47,8 +47,8 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
         match *self {
             FieldInstr::Fits { src: _, bits: _ } => none!(),
             FieldInstr::NegMod { dst, src: _ }
-            | FieldInstr::AddMod { dst, src: _ }
-            | FieldInstr::MulMod { dst, src: _ } => bset![dst],
+            | FieldInstr::AddMod { dst_src: dst, src: _ }
+            | FieldInstr::MulMod { dst_src: dst, src: _ } => bset![dst],
         }
     }
 
@@ -56,8 +56,8 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
         match self {
             FieldInstr::Fits { src: _, bits: _ } => 1,
             FieldInstr::NegMod { dst: _, src: _ }
-            | FieldInstr::AddMod { dst: _, src: _ }
-            | FieldInstr::MulMod { dst: _, src: _ } => 0,
+            | FieldInstr::AddMod { dst_src: _, src: _ }
+            | FieldInstr::MulMod { dst_src: _, src: _ } => 0,
         }
     }
 
@@ -79,8 +79,8 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
                 }
             },
             FieldInstr::NegMod { dst, src } => core.cx.neg_mod(dst, src),
-            FieldInstr::AddMod { dst, src } => core.cx.add_mod(dst, src),
-            FieldInstr::MulMod { dst, src } => core.cx.mul_mod(dst, src),
+            FieldInstr::AddMod { dst_src, src } => core.cx.add_mod(dst_src, src),
+            FieldInstr::MulMod { dst_src, src } => core.cx.mul_mod(dst_src, src),
         };
         if res == Status::Ok {
             ExecStep::Next

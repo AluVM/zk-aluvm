@@ -54,14 +54,14 @@ pub enum FieldInstr {
     #[display("neg.gf   {dst}, {src}")]
     NegMod { dst: RegE, src: RegE },
 
-    /// Add `src` value to `src_dst` value using finite-field (modulo) arithmetics of the `order`.
-    #[display("add.gf   {dst}, {src}")]
-    AddMod { dst: RegE, src: RegE },
+    /// Add `src` value to `dst_src` value using finite-field (modulo) arithmetics of the `order`.
+    #[display("add.gf   {dst_src}, {src}")]
+    AddMod { dst_src: RegE, src: RegE },
 
-    /// Multiply `src` value to `src_dst` value using finite-field (modulo) arithmetics of the
+    /// Multiply `src` value to `dst_src` value using finite-field (modulo) arithmetics of the
     /// `order`.
-    #[display("mul.gf   {dst}, {src}")]
-    MulMod { dst: RegE, src: RegE },
+    #[display("mul.gf   {dst_src}, {src}")]
+    MulMod { dst_src: RegE, src: RegE },
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]

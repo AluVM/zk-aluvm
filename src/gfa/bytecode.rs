@@ -61,12 +61,12 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
                 writer.write_4bits(dst.to_u4())?;
                 writer.write_4bits(src.to_u4())?;
             }
-            FieldInstr::AddMod { dst, src } => {
-                writer.write_4bits(dst.to_u4())?;
+            FieldInstr::AddMod { dst_src, src } => {
+                writer.write_4bits(dst_src.to_u4())?;
                 writer.write_4bits(src.to_u4())?;
             }
-            FieldInstr::MulMod { dst, src } => {
-                writer.write_4bits(dst.to_u4())?;
+            FieldInstr::MulMod { dst_src, src } => {
+                writer.write_4bits(dst_src.to_u4())?;
                 writer.write_4bits(src.to_u4())?;
             }
         }
@@ -90,14 +90,14 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
                 FieldInstr::NegMod { dst, src }
             }
             Self::ADD => {
-                let dst = RegE::from(reader.read_4bits()?);
+                let dst_src = RegE::from(reader.read_4bits()?);
                 let src = RegE::from(reader.read_4bits()?);
-                FieldInstr::AddMod { dst, src }
+                FieldInstr::AddMod { dst_src, src }
             }
             Self::MUL => {
-                let dst = RegE::from(reader.read_4bits()?);
+                let dst_src = RegE::from(reader.read_4bits()?);
                 let src = RegE::from(reader.read_4bits()?);
-                FieldInstr::MulMod { dst, src }
+                FieldInstr::MulMod { dst_src, src }
             }
             _ => unreachable!(),
         })
