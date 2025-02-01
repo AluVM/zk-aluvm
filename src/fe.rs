@@ -47,6 +47,8 @@ pub struct fe256(
 );
 
 impl fe256 {
+    pub const ZERO: Self = Self(u256::ZERO);
+
     #[must_use]
     fn test_value(val: u256) -> bool { val.into_inner()[3] & 0xF800_0000_0000_0000 == 0 }
 

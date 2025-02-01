@@ -27,7 +27,7 @@ use aluvm::regs::Status;
 use aluvm::{Core, CoreExt, Site, SiteId};
 
 use super::{FieldInstr, Instr, ISA_GFA128};
-use crate::{GfaCore, RegE};
+use crate::{fe256, GfaCore, RegE};
 
 impl<Id: SiteId> Instruction<Id> for FieldInstr {
     const ISA_EXT: &'static [&'static str] = &[ISA_GFA128];
@@ -36,16 +36,34 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
 
     fn src_regs(&self) -> BTreeSet<RegE> {
         match *self {
-            FieldInstr::Fits { src, bits: _ }
+            FieldInstr::Clr { dst: _ }
+            | FieldInstr::PutD { dst: _, data: _ }
+            | FieldInstr::PutZ { dst: _ }
+            | FieldInstr::PutV { dst: _, val: _ } => none!(),
+
+            FieldInstr::Eq { src1, src2 } => bset![src1, src2],
+
+            FieldInstr::Test { src }
+            | FieldInstr::Fits { src, bits: _ }
+            | FieldInstr::Mov { dst: _, src }
             | FieldInstr::NegMod { dst: _, src } => bset![src],
-            FieldInstr::AddMod { dst_src, src }
-            | FieldInstr::MulMod { dst_src, src } => bset![src, dst_src],
+
+            FieldInstr::AddMod { dst_src, src } | FieldInstr::MulMod { dst_src, src } => bset![src, dst_src],
         }
     }
 
     fn dst_regs(&self) -> BTreeSet<RegE> {
         match *self {
-            FieldInstr::Fits { src: _, bits: _ } => none!(),
+            FieldInstr::Clr { dst }
+            | FieldInstr::PutD { dst, data: _ }
+            | FieldInstr::PutZ { dst }
+            | FieldInstr::PutV { dst, val: _ }
+            | FieldInstr::Mov { dst, src: _ } => bset![dst],
+
+            FieldInstr::Eq { src1: _, src2: _ }
+            | FieldInstr::Test { src: _ }
+            | FieldInstr::Fits { src: _, bits: _ } => none!(),
+
             FieldInstr::NegMod { dst, src: _ }
             | FieldInstr::AddMod { dst_src: dst, src: _ }
             | FieldInstr::MulMod { dst_src: dst, src: _ } => bset![dst],
@@ -54,23 +72,101 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
 
     fn op_data_bytes(&self) -> u16 {
         match self {
-            FieldInstr::Fits { src: _, bits: _ } => 1,
-            FieldInstr::NegMod { dst: _, src: _ }
+            FieldInstr::PutV { dst: _, val: _ } | FieldInstr::Fits { src: _, bits: _ } => 1,
+
+            FieldInstr::Test { src: _ }
+            | FieldInstr::Clr { dst: _ }
+            | FieldInstr::PutD { dst: _, data: _ }
+            | FieldInstr::PutZ { dst: _ }
+            | FieldInstr::Mov { dst: _, src: _ }
+            | FieldInstr::Eq { src1: _, src2: _ }
+            | FieldInstr::NegMod { dst: _, src: _ }
             | FieldInstr::AddMod { dst_src: _, src: _ }
             | FieldInstr::MulMod { dst_src: _, src: _ } => 0,
         }
     }
 
-    fn ext_data_bytes(&self) -> u16 { 0 }
+    fn ext_data_bytes(&self) -> u16 {
+        match self {
+            FieldInstr::PutD { dst: _, data: _ } => 32,
+
+            FieldInstr::Test { src: _ }
+            | FieldInstr::Clr { dst: _ }
+            | FieldInstr::PutZ { dst: _ }
+            | FieldInstr::PutV { dst: _, val: _ }
+            | FieldInstr::Fits { src: _, bits: _ }
+            | FieldInstr::Mov { dst: _, src: _ }
+            | FieldInstr::Eq { src1: _, src2: _ }
+            | FieldInstr::NegMod { dst: _, src: _ }
+            | FieldInstr::AddMod { dst_src: _, src: _ }
+            | FieldInstr::MulMod { dst_src: _, src: _ } => 0,
+        }
+    }
 
     fn complexity(&self) -> u64 {
-        // Double the default complexity since each instruction performs two operations (and each arithmetic
-        // operations is x10 of move operation).
-        Instruction::<Id>::base_complexity(self) * 20
+        let base = Instruction::<Id>::base_complexity(self);
+        match self {
+            FieldInstr::Test { src: _ }
+            | FieldInstr::Clr { dst: _ }
+            | FieldInstr::PutZ { dst: _ }
+            | FieldInstr::PutV { dst: _, val: _ }
+            | FieldInstr::PutD { dst: _, data: _ }
+            | FieldInstr::Mov { dst: _, src: _ }
+            | FieldInstr::Eq { src1: _, src2: _ } => base,
+
+            FieldInstr::Fits { src: _, bits: _ }
+            | FieldInstr::NegMod { dst: _, src: _ }
+            | FieldInstr::AddMod { dst_src: _, src: _ }
+            | FieldInstr::MulMod { dst_src: _, src: _ } => {
+                // Double the default complexity since each instruction performs two operations (and each
+                // arithmetic operations is x10 of move operation).
+                base * 20
+            }
+        }
     }
 
     fn exec(&self, _: Site<Id>, core: &mut Core<Id, GfaCore>, _: &Self::Context<'_>) -> ExecStep<Site<Id>> {
         let res = match *self {
+            FieldInstr::Test { src } => {
+                let res = core.cx.test(src);
+                core.set_co(res);
+                if res {
+                    Status::Ok
+                } else {
+                    Status::Fail
+                }
+            }
+            FieldInstr::Clr { dst } => {
+                core.cx.clr(dst);
+                Status::Ok
+            }
+            FieldInstr::PutD { dst, data } => {
+                core.cx.set(dst, data);
+                Status::Ok
+            }
+            FieldInstr::PutZ { dst } => {
+                core.cx.set(dst, fe256::ZERO);
+                Status::Ok
+            }
+            FieldInstr::PutV { dst, val } => {
+                let val = val.to_fe256().unwrap_or_else(|| core.cx.fq().into());
+                core.cx.set(dst, val);
+                Status::Ok
+            }
+            FieldInstr::Mov { dst, src } => {
+                core.cx.mov(dst, src);
+                Status::Ok
+            }
+            FieldInstr::Eq { src1, src2 } => {
+                let res = core.cx.eqv(src1, src2);
+                core.set_co(res);
+                if res {
+                    Status::Ok
+                } else {
+                    Status::Fail
+                }
+            }
+
             FieldInstr::Fits { src, bits } => match core.cx.fits(src, bits) {
                 None => Status::Fail,
                 Some(fits) => {

@@ -24,17 +24,20 @@ use core::ops::RangeInclusive;
 
 use aluvm::isa::{Bytecode, BytecodeRead, BytecodeWrite, CodeEofError, CtrlInstr, ReservedInstr};
 use aluvm::SiteId;
+use amplify::num::{u1, u2, u256, u4};
 
-use super::{Bits, FieldInstr, Instr};
-use crate::RegE;
+use super::{Bits, ConstVal, FieldInstr, Instr};
+use crate::{fe256, RegE};
 
 impl FieldInstr {
     const START: u8 = 64;
     const END: u8 = Self::START + Self::MUL;
-    const FITS: u8 = 0;
-    const NEG: u8 = 1;
-    const ADD: u8 = 2;
-    const MUL: u8 = 3;
+    const SET: u8 = 0;
+    const MOV: u8 = 1;
+    const EQ: u8 = 2;
+    const NEG: u8 = 3;
+    const ADD: u8 = 4;
+    const MUL: u8 = 5;
 }
 
 impl<Id: SiteId> Bytecode<Id> for FieldInstr {
@@ -43,7 +46,14 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
     fn opcode_byte(&self) -> u8 {
         Self::START
             + match *self {
-                FieldInstr::Fits { .. } => Self::FITS,
+                FieldInstr::Test { .. }
+                | FieldInstr::Clr { .. }
+                | FieldInstr::PutD { .. }
+                | FieldInstr::PutZ { .. }
+                | FieldInstr::PutV { .. }
+                | FieldInstr::Fits { .. } => Self::SET,
+                FieldInstr::Mov { .. } => Self::MOV,
+                FieldInstr::Eq { .. } => Self::EQ,
                 FieldInstr::NegMod { .. } => Self::NEG,
                 FieldInstr::AddMod { .. } => Self::ADD,
                 FieldInstr::MulMod { .. } => Self::MUL,
@@ -53,9 +63,40 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
     fn encode_operands<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where W: BytecodeWrite<Id> {
         match *self {
-            FieldInstr::Fits { src: dst, bits } => {
+            FieldInstr::Test { src } => {
+                writer.write_4bits(u4::with(0b_0000))?;
+                writer.write_4bits(src.to_u4())?;
+            }
+            FieldInstr::Clr { dst } => {
+                writer.write_4bits(u4::with(0b_0001))?;
                 writer.write_4bits(dst.to_u4())?;
-                writer.write_4bits(bits.to_u4())?;
+            }
+            FieldInstr::PutD { dst, data } => {
+                writer.write_4bits(u4::with(0b_0010))?;
+                writer.write_4bits(dst.to_u4())?;
+                writer.write_fixed(data.to_u256().to_le_bytes())?;
+            }
+            FieldInstr::PutZ { dst } => {
+                writer.write_4bits(u4::with(0b_0011))?;
+                writer.write_4bits(dst.to_u4())?;
+            }
+            FieldInstr::PutV { dst, val } => {
+                writer.write_1bit(u1::ZERO)?;
+                writer.write_3bits(val.to_u3())?;
+                writer.write_4bits(dst.to_u4())?;
+            }
+            FieldInstr::Fits { src: dst, bits } => {
+                writer.write_1bit(u1::ONE)?;
+                writer.write_3bits(bits.to_u3())?;
+                writer.write_4bits(dst.to_u4())?;
+            }
+            FieldInstr::Mov { dst, src } => {
+                writer.write_4bits(dst.to_u4())?;
+                writer.write_4bits(src.to_u4())?;
+            }
+            FieldInstr::Eq { src1, src2 } => {
+                writer.write_4bits(src1.to_u4())?;
+                writer.write_4bits(src2.to_u4())?;
             }
             FieldInstr::NegMod { dst, src } => {
                 writer.write_4bits(dst.to_u4())?;
@@ -79,10 +120,61 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
         R: BytecodeRead<Id>,
     {
         Ok(match opcode - Self::START {
-            Self::FITS => {
+            Self::SET => {
+                let sub = u1::from(reader.read_1bit()?);
+                match sub {
+                    u1::ZERO => {
+                        let sub2 = u1::from(reader.read_1bit()?);
+                        match sub2 {
+                            u1::ZERO => {
+                                let sub3 = u2::from(reader.read_2bits()?);
+                                match sub3 {
+                                    u2::ZERO => {
+                                        let src = RegE::from(reader.read_4bits()?);
+                                        FieldInstr::Test { src }
+                                    }
+                                    u2::ONE => {
+                                        let dst = RegE::from(reader.read_4bits()?);
+                                        FieldInstr::Clr { dst }
+                                    }
+                                    x if x == u2::with(2) => {
+                                        let dst = RegE::from(reader.read_4bits()?);
+                                        let data =
+                                            reader.read_fixed(|d: [u8; 32]| fe256::from(u256::from_le_bytes(d)))?;
+                                        FieldInstr::PutD { dst, data }
+                                    }
+                                    u2::MAX => {
+                                        let dst = RegE::from(reader.read_4bits()?);
+                                        FieldInstr::PutZ { dst }
+                                    }
+                                    _ => unreachable!(),
+                                }
+                            }
+                            u1::ONE => {
+                                let val = ConstVal::from(reader.read_3bits()?);
+                                let dst = RegE::from(reader.read_4bits()?);
+                                FieldInstr::PutV { dst, val }
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                    u1::ONE => {
+                        let bits = Bits::from(reader.read_3bits()?);
+                        let dst = RegE::from(reader.read_4bits()?);
+                        FieldInstr::Fits { src: dst, bits }
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            Self::MOV => {
                 let dst = RegE::from(reader.read_4bits()?);
-                let bits = Bits::from(reader.read_4bits()?);
-                FieldInstr::Fits { src: dst, bits }
+                let src = RegE::from(reader.read_4bits()?);
+                FieldInstr::Mov { dst, src }
+            }
+            Self::EQ => {
+                let src1 = RegE::from(reader.read_4bits()?);
+                let src2 = RegE::from(reader.read_4bits()?);
+                FieldInstr::Eq { src1, src2 }
             }
             Self::NEG => {
                 let dst = RegE::from(reader.read_4bits()?);

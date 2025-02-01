@@ -26,6 +26,6 @@ mod instr;
 mod bytecode;
 mod exec;
 
-pub use instr::{Bits, FieldInstr, Instr};
+pub use instr::{Bits, ConstVal, FieldInstr, Instr};
 
 pub const ISA_GFA128: &str = "GFA128";
