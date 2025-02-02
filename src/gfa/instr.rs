@@ -22,7 +22,7 @@
 
 use aluvm::isa::{CtrlInstr, ReservedInstr};
 use aluvm::SiteId;
-use amplify::num::u3;
+use amplify::num::{u2, u3};
 
 use crate::{fe256, RegE};
 
@@ -140,39 +140,23 @@ pub enum ConstVal {
     #[display("1")]
     Val1 = 0,
 
-    #[display("2")]
-    Val2 = 1,
+    #[display("ffff_ffff_ffff_ffff.h")]
+    ValU64Max = 1,
 
-    #[display("4")]
-    Val4 = 2,
+    #[display("ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff.h")]
+    ValU128Max = 2,
 
-    #[display("8")]
-    Val8 = 3,
-
-    #[display("16")]
-    Val16 = 4,
-
-    #[display("32")]
-    Val32 = 5,
-
-    #[display("64")]
-    Val64 = 6,
-
-    #[display("max")]
-    ValMAX = 7,
+    #[display("-1.fe")]
+    ValFeMAX = 3,
 }
 
-impl From<u3> for ConstVal {
-    fn from(val: u3) -> Self {
+impl From<u2> for ConstVal {
+    fn from(val: u2) -> Self {
         match val {
-            x if x == ConstVal::Val1.to_u3() => ConstVal::Val1,
-            x if x == ConstVal::Val2.to_u3() => ConstVal::Val2,
-            x if x == ConstVal::Val4.to_u3() => ConstVal::Val4,
-            x if x == ConstVal::Val8.to_u3() => ConstVal::Val8,
-            x if x == ConstVal::Val16.to_u3() => ConstVal::Val16,
-            x if x == ConstVal::Val32.to_u3() => ConstVal::Val32,
-            x if x == ConstVal::Val64.to_u3() => ConstVal::Val64,
-            x if x == ConstVal::ValMAX.to_u3() => ConstVal::ValMAX,
+            x if x == ConstVal::Val1.to_u2() => ConstVal::Val1,
+            x if x == ConstVal::ValU64Max.to_u2() => ConstVal::ValU64Max,
+            x if x == ConstVal::ValU128Max.to_u2() => ConstVal::ValU128Max,
+            x if x == ConstVal::ValFeMAX.to_u2() => ConstVal::ValFeMAX,
             _ => unreachable!(),
         }
     }
@@ -180,18 +164,14 @@ impl From<u3> for ConstVal {
 
 impl ConstVal {
     #[inline]
-    pub const fn to_u3(self) -> u3 { u3::with(self as u8) }
+    pub const fn to_u2(self) -> u2 { u2::with(self as u8) }
 
     pub fn to_fe256(self) -> Option<fe256> {
         let val = match self {
-            ConstVal::Val1 => 1u8,
-            ConstVal::Val2 => 2u8,
-            ConstVal::Val4 => 4u8,
-            ConstVal::Val8 => 8u8,
-            ConstVal::Val16 => 16u8,
-            ConstVal::Val32 => 32u8,
-            ConstVal::Val64 => 64u8,
-            ConstVal::ValMAX => return None,
+            ConstVal::Val1 => 1u128,
+            ConstVal::ValU64Max => u64::MAX as u128,
+            ConstVal::ValU128Max => u128::MAX,
+            ConstVal::ValFeMAX => return None,
         };
         Some(fe256::from(val))
     }

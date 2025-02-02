@@ -20,8 +20,11 @@ name = "zkaluvm"
 amplify = { version = "~4.8.0", default-features = false, features = ["derive"] }
 strict_encoding = { version = "~2.8.1", default-features = false, features = ["derive"] }
 strict_types = { version = "~2.8.1", optional = true }
-aluvm = "0.12.0-beta.4"
+aluvm = "=0.12.0-beta.4"
 serde = { version = "1", optional = true }
+
+[dev-dependencies]
+aluvm = { version = "0.12.0-beta.4", features = ["tests"] }
 
 [features]
 default = []
@@ -44,3 +47,6 @@ wasm-bindgen-test = "0.3"
 
 [package.metadata.docs.rs]
 features = ["all"]
+
+[patch.crates-io]
+aluvm = { git = "https://github.com/AluVM/aluvm", branch = "v0.12" }

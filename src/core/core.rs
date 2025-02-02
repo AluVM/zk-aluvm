@@ -95,22 +95,22 @@ impl From<GfaCore> for NoExt {
 #[display(uppercase)]
 #[repr(u8)]
 pub enum RegE {
-    E1 = 0,
-    E2,
-    E3,
-    E4,
-    E5,
-    E6,
-    E7,
-    E8,
-    EA,
-    EB,
-    EC,
-    ED,
-    EE,
-    EF,
-    EG,
-    EH,
+    E1 = 0b_0000,
+    E2 = 0b_0001,
+    E3 = 0b_0010,
+    E4 = 0b_0011,
+    E5 = 0b_0100,
+    E6 = 0b_0101,
+    E7 = 0b_0110,
+    E8 = 0b_0111,
+    EA = 0b_1000,
+    EB = 0b_1001,
+    EC = 0b_1010,
+    ED = 0b_1011,
+    EE = 0b_1100,
+    EF = 0b_1101,
+    EG = 0b_1110,
+    EH = 0b_1111,
 }
 
 impl Register for RegE {
@@ -145,6 +145,25 @@ impl From<u4> for RegE {
 }
 
 impl RegE {
+    pub const ALL: [Self; 16] = [
+        RegE::E1,
+        RegE::E2,
+        RegE::E3,
+        RegE::E4,
+        RegE::E5,
+        RegE::E6,
+        RegE::E7,
+        RegE::E8,
+        RegE::EA,
+        RegE::EB,
+        RegE::EC,
+        RegE::ED,
+        RegE::EE,
+        RegE::EF,
+        RegE::EG,
+        RegE::EH,
+    ];
+
     #[inline]
     pub const fn to_u4(self) -> u4 { u4::with(self as u8) }
 }
