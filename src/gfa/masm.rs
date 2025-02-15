@@ -37,6 +37,8 @@
 ///     chk                 ;
 ///     test    E1          ;
 ///     clr     EA          ;
+///     mov     E2, 0       ;
+///     mov     EB, 20      ;
 ///     mov     E1, E2      ;
 ///     eq      E1, E2      ;
 ///     neg     EA, EH      ;
@@ -110,7 +112,7 @@ macro_rules! instr {
     (mov $dst:ident, $val:literal) => {
         $crate::gfa::FieldInstr::PutD {
             dst: $crate::RegE::$dst,
-            data: $crate::fe256::from($val)
+            data: $crate::fe256::from($val as u128)
         }.into()
     };
 
