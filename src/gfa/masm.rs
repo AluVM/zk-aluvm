@@ -20,103 +20,130 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+/// Macro compiler for AluVM assembler.
+///
+/// # Example
+///
+/// ```
+/// extern crate alloc;
+///
+/// use aluvm::regs::Status;
+/// use aluvm::{Lib, LibId, LibSite, Vm};
+///
+/// use zkaluvm::{zk_aluasm, gfa::Instr};
+///
+/// let code = zk_aluasm! {
+///     nop                 ;
+///     chk                 ;
+///     test    E1          ;
+///     clr     EA          ;
+///     mov     E1, E2      ;
+///     eq      E1, E2      ;
+///     neg     EA, EH      ;
+///     add     EA, EH      ;
+///     mul     EA, EH      ;
+/// };
+///
+/// let lib = Lib::assemble::<Instr<LibId>>(&code).unwrap();
+/// let mut vm = Vm::<Instr<LibId>>::new();
+/// match vm.exec(LibSite::new(lib.lib_id(), 0), &(), |_| Some(&lib)) {
+///     Status::Ok => println!("success"),
+///     Status::Fail => println!("failure"),
+/// }
+/// ```
+#[macro_export]
+macro_rules! zk_aluasm {
+    ($( $tt:tt )+) => {{
+        use $crate::instr;
+
+        let mut code: alloc::vec::Vec<$crate::gfa::Instr<::aluvm::LibId>> = Default::default();
+        #[allow(unreachable_code)] {
+            ::aluvm::aluasm_inner! { code => $( $tt )+ }
+        }
+        code
+    }};
+}
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! instr {
-    // Modulo-increment
-    (incmod $A:ident : $idx:literal, $val:literal) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::IncMod { dst_src: a!($A : $idx), val: $val })
+    // Test register
+    (test $src:ident) => {
+        $crate::gfa::FieldInstr::Test {
+            src: $crate::RegE::$src
+        }.into()
     };
-    (incmod $A:ident : $idx:ident, $val:literal) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::IncMod { dst_src: a!($A : $idx), val: $val })
+
+    // Clear register
+    (clr $dst:ident) => {
+        $crate::gfa::FieldInstr::Clr {
+            dst: $crate::RegE::$dst
+        }.into()
     };
-    (incmod $A:ident . $idx:ident, $val:literal) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::IncMod { dst_src: a!($A . $idx), val: $val })
+
+    // Checks whether a value in a register fits the provided number of bits
+    (fits $src:ident, $bits:literal) => {
+        $crate::gfa::FieldInstr::Fits {
+            src: $crate::RegE::$src,
+            bits: $crate::gfa::Bits::from(::amplify::num::u3::with($bits))
+        }.into()
     };
-    // Modulo-decrement
-    (decmod $A:ident : $idx:literal, $val:literal) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::DecMod { dst_src: a!($A : $idx), val: $val })
+
+    // Moving value between regs
+    (mov $dst:ident, $src:ident) => {
+        $crate::gfa::FieldInstr::Mov {
+            dst: $crate::RegE::$dst,
+            src: $crate::RegE::$src
+        }.into()
     };
-    (decmod $A:ident : $idx:ident, $val:literal) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::DecMod { dst_src: a!($A : $idx), val: $val })
+
+    // Put zero value to a register
+    (mov $dst:ident, 0) => {
+        $crate::gfa::FieldInstr::PutZ {
+            dst: $crate::RegE::$dst
+        }.into()
     };
-    (decmod $A:ident . $idx:ident, $val:literal) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::DecMod { dst_src: a!($A . $idx), val: $val })
+
+    // Put a specific value to a register
+    // TODO: Support hexadecimals here
+    // TODO: Support special values here
+    (mov $dst:ident, $val:literal) => {
+        $crate::gfa::FieldInstr::PutD {
+            dst: $crate::RegE::$dst,
+            data: $crate::fe256::from($val)
+        }.into()
+    };
+
+    // Equivalence
+    (eq $dst:ident, $src:ident) => {
+        $crate::gfa::FieldInstr::Eq {
+            src1: $crate::RegE::$dst,
+            src2: $crate::RegE::$src
+        }.into()
     };
     // Modulo-negate
-    (negmod $A:ident : $idx:literal) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::NegMod { dst_src: a!($A : $idx) })
-    };
-    (negmod $A:ident : $idx:ident) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::NegMod { dst_src: a!($A : $idx) })
-    };
-    (negmod $A:ident . $idx:ident) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::NegMod { dst_src: a!($A . $idx) })
+    (neg $dst:ident, $src:ident) => {
+        $crate::gfa::FieldInstr::Neg {
+            dst: $crate::RegE::$dst,
+            src: $crate::RegE::$src
+        }.into()
     };
     // Modulo-add
-    (addmod A128 : $dst:literal, A128 : $src1:literal, A128 : $src2:literal) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::AddMod { reg: A::A128, dst: _a_idx!(:$dst), src1: _a_idx!(:$src1), src2: _a_idx!(:$src2) })
-    };
-    (addmod A128 : $dst:ident, A128 : $src1:ident, A128 : $src2:ident) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::AddMod { reg: A::A128, dst: _a_idx!(:$dst), src1: _a_idx!(:$src1), src2: _a_idx!(:$src2) })
-    };
-    (addmod A128 . $dst:ident, A128 . $src1:ident, A128 . $src2:ident) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::AddMod { reg: A::A128, dst: _a_idx!(.$dst), src1: _a_idx!(.$src1), src2: _a_idx!(.$src2) })
+    (add $dst_src:ident, $src:ident) => {
+        $crate::gfa::FieldInstr::Add {
+            dst_src: $crate::RegE::$dst_src,
+            src: $crate::RegE::$src
+        }.into()
     };
     // Modulo-multiply
-    (mulmod A128 : $dst:literal, A128 : $src1:literal, A128 : $src2:literal) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::MulMod { reg: A::A128, dst: _a_idx!(:$dst), src1: _a_idx!(:$src1), src2: _a_idx!(:$src2) })
-    };
-    (mulmod A128 : $dst:ident, A128 : $src1:ident, A128 : $src2:ident) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::MulMod { reg: A::A128, dst: _a_idx!(:$dst), src1: _a_idx!(:$src1), src2: _a_idx!(:$src2) })
-    };
-    (mulmod A128 . $dst:ident, A128 . $src1:ident, A128 . $src2:ident) => {
-        #[cfg(feature = "GFA")]
-        Instr::GFqA(FieldInstr::MulMod { reg: A::A128, dst: _a_idx!(.$dst), src1: _a_idx!(.$src1), src2: _a_idx!(.$src2) })
+    (mul $dst_src:ident, $src:ident) => {
+        $crate::gfa::FieldInstr::Mul {
+            dst_src: $crate::RegE::$dst_src,
+            src: $crate::RegE::$src
+        }.into()
     };
 
     { $($tt:tt)+ } => {
-        Instr::Reserved(isa_instr! { $( $tt )+ })
-    };
-}
-
-#[macro_export]
-macro_rules! a {
-    ($A:ident : $idx:literal) => {
-$crate::regs::RegA::$A(_a_idx!(: $idx))
-    };
-    ($A:ident : $idx:ident) => {
-$crate::regs::RegA::$A(_a_idx!(: $idx))
-    };
-    ($A:ident. $idx:ident) => {
-$crate::regs::RegA::$A(_a_idx!(. $idx))
-    };
-}
-
-#[macro_export]
-#[doc(hidden)]
-macro_rules! _a_idx {
-    (: $idx:literal) => {
-        $crate::regs::IdxA::from($crate::paste! { $crate::regs::Idx32 :: [< L $idx >] })
-    };
-    (: $idx:ident) => {
-        $crate::regs::IdxA::from($crate::regs::Idx32::$idx)
-    };
-    (. $idx:ident) => {
-        $crate::regs::IdxA::from($crate::paste! { $crate::regs::Idx32 :: [< S $idx >] })
+        $crate::gfa::Instr::Ctrl(::aluvm::instr! { $( $tt )+ })
     };
 }

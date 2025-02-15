@@ -39,12 +39,14 @@ extern crate amplify;
 extern crate strict_encoding;
 
 mod core;
+#[macro_use]
 pub mod gfa;
 #[cfg(feature = "stl")]
 pub mod zkstl;
 mod fe;
 
-pub use aluvm::*;
+pub use aluvm::isa;
+pub use aluvm as alu;
 pub use fe::{fe256, ParseFeError};
 
 pub use self::core::{GfaCore, RegE};

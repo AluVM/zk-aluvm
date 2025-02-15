@@ -63,19 +63,20 @@ pub enum FieldInstr {
     /// Puts value into a register, replacing previous value in it, if there was any.
     ///
     /// Doesn't affect values in `co` and `ck` registers.
-    #[display("put      {dst}, {data}")]
+    #[display("mov      {dst}, {data}")]
     PutD { dst: RegE, data: fe256 },
 
     /// Puts zero (`0`) value into a register, replacing previous value in it, if there was any.
     ///
     /// Doesn't affect values in `co` and `ck` registers.
+    #[display("mov      {dst}, 0")]
     PutZ { dst: RegE },
 
     /// Puts `val` value, which is a power of 2, into a register, replacing previous value in it, if
     /// there was any.
     ///
     /// Doesn't affect values in `co` and `ck` registers.
-    #[display("put      {dst}, {val}")]
+    #[display("mov      {dst}, {val}")]
     PutV { dst: RegE, val: ConstVal },
 
     /// Test whether a value in a register fits in the provided number of bits.
@@ -110,8 +111,8 @@ pub enum FieldInstr {
     /// Doesn't affect values in `co` register.
     ///
     /// If `src` is set to `None`, sets `ck` to `false`; otherwise leaves value in  `ck` unchanged.
-    #[display("neg.gf   {dst}, {src}")]
-    NegMod { dst: RegE, src: RegE },
+    #[display("neg      {dst}, {src}")]
+    Neg { dst: RegE, src: RegE },
 
     /// Add `src` value to `dst_src` value using finite-field (modulo) arithmetics of the `order`,
     /// putting result to `dst_src`.
@@ -120,8 +121,8 @@ pub enum FieldInstr {
     ///
     /// If either `src` or `dst_src` (or both) is set to `None`, sets `ck` to `false`; otherwise
     /// leaves value in  `ck` unchanged.
-    #[display("add.gf   {dst_src}, {src}")]
-    AddMod { dst_src: RegE, src: RegE },
+    #[display("add      {dst_src}, {src}")]
+    Add { dst_src: RegE, src: RegE },
 
     /// Multiply `src` value to `dst_src` value using finite-field (modulo) arithmetics of the
     /// `order`, putting result to `dst_src`.
@@ -130,8 +131,8 @@ pub enum FieldInstr {
     ///
     /// If either `src` or `dst_src` (or both) is set to `None`, sets `ck` to `false`; otherwise
     /// leaves value in  `ck` unchanged.
-    #[display("mul.gf   {dst_src}, {src}")]
-    MulMod { dst_src: RegE, src: RegE },
+    #[display("mul      {dst_src}, {src}")]
+    Mul { dst_src: RegE, src: RegE },
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]
@@ -140,13 +141,13 @@ pub enum ConstVal {
     #[display("1")]
     Val1 = 0,
 
-    #[display("ffff_ffff_ffff_ffff.h")]
+    #[display("ffff_ffff_ffff_ffff#h")]
     ValU64Max = 1,
 
-    #[display("ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff.h")]
+    #[display("ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff#h")]
     ValU128Max = 2,
 
-    #[display("-1.fe")]
+    #[display("-1#fe")]
     ValFeMAX = 3,
 }
 

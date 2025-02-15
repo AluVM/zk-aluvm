@@ -46,9 +46,9 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             FieldInstr::Test { src }
             | FieldInstr::Fits { src, bits: _ }
             | FieldInstr::Mov { dst: _, src }
-            | FieldInstr::NegMod { dst: _, src } => bset![src],
+            | FieldInstr::Neg { dst: _, src } => bset![src],
 
-            FieldInstr::AddMod { dst_src, src } | FieldInstr::MulMod { dst_src, src } => bset![src, dst_src],
+            FieldInstr::Add { dst_src, src } | FieldInstr::Mul { dst_src, src } => bset![src, dst_src],
         }
     }
 
@@ -64,9 +64,9 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             | FieldInstr::Test { src: _ }
             | FieldInstr::Fits { src: _, bits: _ } => none!(),
 
-            FieldInstr::NegMod { dst, src: _ }
-            | FieldInstr::AddMod { dst_src: dst, src: _ }
-            | FieldInstr::MulMod { dst_src: dst, src: _ } => bset![dst],
+            FieldInstr::Neg { dst, src: _ }
+            | FieldInstr::Add { dst_src: dst, src: _ }
+            | FieldInstr::Mul { dst_src: dst, src: _ } => bset![dst],
         }
     }
 
@@ -80,9 +80,9 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             | FieldInstr::PutZ { dst: _ }
             | FieldInstr::Mov { dst: _, src: _ }
             | FieldInstr::Eq { src1: _, src2: _ }
-            | FieldInstr::NegMod { dst: _, src: _ }
-            | FieldInstr::AddMod { dst_src: _, src: _ }
-            | FieldInstr::MulMod { dst_src: _, src: _ } => 0,
+            | FieldInstr::Neg { dst: _, src: _ }
+            | FieldInstr::Add { dst_src: _, src: _ }
+            | FieldInstr::Mul { dst_src: _, src: _ } => 0,
         }
     }
 
@@ -97,9 +97,9 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             | FieldInstr::Fits { src: _, bits: _ }
             | FieldInstr::Mov { dst: _, src: _ }
             | FieldInstr::Eq { src1: _, src2: _ }
-            | FieldInstr::NegMod { dst: _, src: _ }
-            | FieldInstr::AddMod { dst_src: _, src: _ }
-            | FieldInstr::MulMod { dst_src: _, src: _ } => 0,
+            | FieldInstr::Neg { dst: _, src: _ }
+            | FieldInstr::Add { dst_src: _, src: _ }
+            | FieldInstr::Mul { dst_src: _, src: _ } => 0,
         }
     }
 
@@ -115,9 +115,9 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             | FieldInstr::Eq { src1: _, src2: _ } => base,
 
             FieldInstr::Fits { src: _, bits: _ }
-            | FieldInstr::NegMod { dst: _, src: _ }
-            | FieldInstr::AddMod { dst_src: _, src: _ }
-            | FieldInstr::MulMod { dst_src: _, src: _ } => {
+            | FieldInstr::Neg { dst: _, src: _ }
+            | FieldInstr::Add { dst_src: _, src: _ }
+            | FieldInstr::Mul { dst_src: _, src: _ } => {
                 // Double the default complexity since each instruction performs two operations (and each
                 // arithmetic operations is x10 of move operation).
                 base * 20
@@ -174,9 +174,9 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
                     Status::Ok
                 }
             },
-            FieldInstr::NegMod { dst, src } => core.cx.neg_mod(dst, src),
-            FieldInstr::AddMod { dst_src, src } => core.cx.add_mod(dst_src, src),
-            FieldInstr::MulMod { dst_src, src } => core.cx.mul_mod(dst_src, src),
+            FieldInstr::Neg { dst, src } => core.cx.neg_mod(dst, src),
+            FieldInstr::Add { dst_src, src } => core.cx.add_mod(dst_src, src),
+            FieldInstr::Mul { dst_src, src } => core.cx.mul_mod(dst_src, src),
         };
         if res == Status::Ok {
             ExecStep::Next

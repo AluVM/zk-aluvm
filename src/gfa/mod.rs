@@ -25,6 +25,8 @@
 mod instr;
 mod bytecode;
 mod exec;
+#[macro_use]
+mod masm;
 
 pub use instr::{Bits, ConstVal, FieldInstr, Instr};
 

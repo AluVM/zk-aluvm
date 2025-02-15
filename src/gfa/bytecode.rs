@@ -63,9 +63,9 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
                 | FieldInstr::Fits { .. } => Self::SET,
                 FieldInstr::Mov { .. } => Self::MOV,
                 FieldInstr::Eq { .. } => Self::EQ,
-                FieldInstr::NegMod { .. } => Self::NEG,
-                FieldInstr::AddMod { .. } => Self::ADD,
-                FieldInstr::MulMod { .. } => Self::MUL,
+                FieldInstr::Neg { .. } => Self::NEG,
+                FieldInstr::Add { .. } => Self::ADD,
+                FieldInstr::Mul { .. } => Self::MUL,
             }
     }
 
@@ -107,15 +107,15 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
                 writer.write_4bits(src1.to_u4())?;
                 writer.write_4bits(src2.to_u4())?;
             }
-            FieldInstr::NegMod { dst, src } => {
+            FieldInstr::Neg { dst, src } => {
                 writer.write_4bits(dst.to_u4())?;
                 writer.write_4bits(src.to_u4())?;
             }
-            FieldInstr::AddMod { dst_src, src } => {
+            FieldInstr::Add { dst_src, src } => {
                 writer.write_4bits(dst_src.to_u4())?;
                 writer.write_4bits(src.to_u4())?;
             }
-            FieldInstr::MulMod { dst_src, src } => {
+            FieldInstr::Mul { dst_src, src } => {
                 writer.write_4bits(dst_src.to_u4())?;
                 writer.write_4bits(src.to_u4())?;
             }
@@ -175,17 +175,17 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
             Self::NEG => {
                 let dst = RegE::from(reader.read_4bits()?);
                 let src = RegE::from(reader.read_4bits()?);
-                FieldInstr::NegMod { dst, src }
+                FieldInstr::Neg { dst, src }
             }
             Self::ADD => {
                 let dst_src = RegE::from(reader.read_4bits()?);
                 let src = RegE::from(reader.read_4bits()?);
-                FieldInstr::AddMod { dst_src, src }
+                FieldInstr::Add { dst_src, src }
             }
             Self::MUL => {
                 let dst_src = RegE::from(reader.read_4bits()?);
                 let src = RegE::from(reader.read_4bits()?);
-                FieldInstr::MulMod { dst_src, src }
+                FieldInstr::Mul { dst_src, src }
             }
             _ => unreachable!(),
         })
@@ -368,7 +368,7 @@ mod test {
     fn neq_mod() {
         for reg1 in RegE::ALL {
             for reg2 in RegE::ALL {
-                let instr = FieldInstr::NegMod { dst: reg1, src: reg2 };
+                let instr = FieldInstr::Neg { dst: reg1, src: reg2 };
                 let opcode = FieldInstr::START + FieldInstr::NEG;
                 let regs = reg2.to_u4().to_u8() << 4 | reg1.to_u4().to_u8();
 
@@ -381,7 +381,7 @@ mod test {
     fn add_mod() {
         for reg1 in RegE::ALL {
             for reg2 in RegE::ALL {
-                let instr = FieldInstr::AddMod {
+                let instr = FieldInstr::Add {
                     dst_src: reg1,
                     src: reg2,
                 };
@@ -397,7 +397,7 @@ mod test {
     fn mul_mod() {
         for reg1 in RegE::ALL {
             for reg2 in RegE::ALL {
-                let instr = FieldInstr::MulMod {
+                let instr = FieldInstr::Mul {
                     dst_src: reg1,
                     src: reg2,
                 };
