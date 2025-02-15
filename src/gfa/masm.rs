@@ -107,7 +107,6 @@ macro_rules! instr {
     };
 
     // Put a specific value to a register
-    // TODO: Support hexadecimals here
     // TODO: Support special values here
     (mov $dst:ident, $val:literal) => {
         $crate::gfa::FieldInstr::PutD {
