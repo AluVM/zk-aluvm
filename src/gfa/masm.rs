@@ -145,6 +145,6 @@ macro_rules! instr {
     };
 
     { $($tt:tt)+ } => {
-        $crate::gfa::Instr::Ctrl(::aluvm::instr! { $( $tt )+ })
+        $crate::gfa::Instr::Ctrl(::aluvm::instr! { $( $tt )+ }).into()
     };
 }
