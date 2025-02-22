@@ -60,7 +60,7 @@ macro_rules! zk_aluasm {
 
         let mut code: Vec<$crate::gfa::Instr<::aluvm::LibId>> = Default::default();
         #[allow(unreachable_code)] {
-            ::aluvm::aluasm_inner! { code => $( $tt )+ }
+            $crate::alu::aluasm_inner! { code => $( $tt )+ }
         }
         code
     }};
@@ -145,6 +145,6 @@ macro_rules! instr {
     };
 
     { $($tt:tt)+ } => {
-        $crate::gfa::Instr::Ctrl(::aluvm::instr! { $( $tt )+ }).into()
+        $crate::gfa::Instr::Ctrl($crate::alu::instr! { $( $tt )+ }).into()
     };
 }
