@@ -36,6 +36,7 @@
 ///     test    E1          ;
 ///     clr     EA          ;
 ///     mov     E2, 0       ;
+///     fits    EA, 8:bits  ;
 ///     mov     EB, 20      ;
 ///     mov     E1, E2      ;
 ///     eq      E1, E2      ;
@@ -84,10 +85,10 @@ macro_rules! instr {
     };
 
     // Checks whether a value in a register fits the provided number of bits
-    (fits $src:ident, $bits:literal) => {
+    (fits $src:ident, $bits:literal :bits) => {
         $crate::gfa::FieldInstr::Fits {
             src: $crate::RegE::$src,
-            bits: $crate::gfa::Bits::from(::amplify::num::u3::with($bits))
+            bits: $crate::gfa::Bits::from_bit_len($bits)
         }.into()
     };
 

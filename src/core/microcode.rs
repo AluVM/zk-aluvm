@@ -43,7 +43,7 @@ impl GfaCore {
         let order = self.fq();
         let a = self.get(src)?;
         debug_assert!(a.to_u256() < order);
-        let check = a.to_u256() >> bits.bits_len();
+        let check = a.to_u256() >> bits.bit_len();
         Some(check == u256::ZERO)
     }
 

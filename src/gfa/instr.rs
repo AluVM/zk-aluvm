@@ -226,7 +226,21 @@ impl Bits {
     #[inline]
     pub const fn to_u3(self) -> u3 { u3::with(self as u8) }
 
-    pub const fn bits_len(self) -> usize {
+    pub fn from_bit_len(len: usize) -> Self {
+        match len {
+            8 => Bits::Bits8,
+            16 => Bits::Bits16,
+            24 => Bits::Bits24,
+            32 => Bits::Bits32,
+            48 => Bits::Bits48,
+            64 => Bits::Bits64,
+            96 => Bits::Bits96,
+            128 => Bits::Bits128,
+            invalid => panic!("unsupported bit length {invalid}"),
+        }
+    }
+
+    pub const fn bit_len(self) -> usize {
         match self {
             Bits::Bits8 => 8,
             Bits::Bits16 => 16,
