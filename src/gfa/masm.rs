@@ -108,11 +108,17 @@ macro_rules! instr {
     };
 
     // Put a specific value to a register
-    // TODO: Support special values here
     (mov $dst:ident, $val:literal) => {
         $crate::gfa::FieldInstr::PutD {
             dst: $crate::RegE::$dst,
             data: $crate::fe256::from($val as u128)
+        }.into()
+    };
+
+    (mov $dst:ident, :$ident:ident) => {
+        $crate::gfa::FieldInstr::PutD {
+            dst: $crate::RegE::$dst,
+            data: $crate::fe256::from($ident)
         }.into()
     };
 
