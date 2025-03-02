@@ -49,18 +49,16 @@ impl CoreExt for GfaCore {
     fn get(&self, reg: Self::Reg) -> Option<fe256> { self.e[reg as usize] }
 
     #[inline]
-    fn clr(&mut self, reg: Self::Reg) -> Option<fe256> {
-        let prev = self.e[reg as usize];
-        self.e[reg as usize] = None;
-        prev
-    }
+    fn clr(&mut self, reg: Self::Reg) { self.e[reg as usize] = None; }
 
     #[inline]
-    fn set(&mut self, reg: Self::Reg, val: fe256) -> Option<fe256> {
+    fn put(&mut self, reg: Self::Reg, val: Option<fe256>) {
+        let Some(val) = val else {
+            self.e[reg as usize] = None;
+            return;
+        };
         assert!(val.to_u256() < self.fq);
-        let prev = self.e[reg as usize];
         self.e[reg as usize] = Some(val);
-        prev
     }
 
     #[inline]
