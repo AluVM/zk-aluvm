@@ -130,11 +130,7 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             FieldInstr::Test { src } => {
                 let res = core.cx.test(src);
                 core.set_co(res);
-                if res {
-                    Status::Ok
-                } else {
-                    Status::Fail
-                }
+                res
             }
             FieldInstr::Clr { dst } => {
                 core.cx.clr(dst);
@@ -160,17 +156,17 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             FieldInstr::Eq { src1, src2 } => {
                 let res = core.cx.eqv(src1, src2);
                 core.set_co(res);
-                if res {
-                    Status::Ok
-                } else {
-                    Status::Fail
-                }
+                res
             }
 
             FieldInstr::Fits { src, bits } => match core.cx.fits(src, bits) {
                 None => Status::Fail,
-                Some(fits) => {
-                    core.set_co(!fits);
+                Some(true) => {
+                    core.set_co(Status::Ok);
+                    Status::Ok
+                }
+                Some(false) => {
+                    core.set_co(Status::Fail);
                     Status::Ok
                 }
             },

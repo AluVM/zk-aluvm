@@ -31,7 +31,13 @@ use crate::{fe256, GfaCore, RegE};
 impl GfaCore {
     pub fn fq(&self) -> u256 { self.fq }
 
-    pub fn test(&self, src: RegE) -> bool { self.get(src).is_some() }
+    pub fn test(&self, src: RegE) -> Status {
+        if self.get(src).is_some() {
+            Status::Ok
+        } else {
+            Status::Fail
+        }
+    }
 
     pub fn fits(&self, src: RegE, bits: Bits) -> Option<bool> {
         let order = self.fq();
@@ -52,10 +58,14 @@ impl GfaCore {
         }
     }
 
-    pub fn eqv(&mut self, src1: RegE, src2: RegE) -> bool {
+    pub fn eqv(&mut self, src1: RegE, src2: RegE) -> Status {
         let a = self.get(src1);
         let b = self.get(src2);
-        a == b
+        if a == b {
+            Status::Ok
+        } else {
+            Status::Fail
+        }
     }
 
     #[inline]
