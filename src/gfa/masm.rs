@@ -27,8 +27,8 @@
 /// ```
 /// use aluvm::regs::Status;
 /// use aluvm::{Lib, LibId, LibSite, Vm};
-///
-/// use zkaluvm::{zk_aluasm, gfa::Instr};
+/// use zkaluvm::gfa::Instr;
+/// use zkaluvm::zk_aluasm;
 ///
 /// let code = zk_aluasm! {
 ///     nop                 ;
@@ -58,7 +58,7 @@ macro_rules! zk_aluasm {
         #[cfg(not(feature = "std"))]
         use alloc::vec::Vec;
 
-        let mut code: Vec<$crate::gfa::Instr<::aluvm::LibId>> = Default::default();
+        let mut code: Vec<$crate::gfa::Instr<$crate::alu::LibId>> = Default::default();
         #[allow(unreachable_code)] {
             $crate::alu::aluasm_inner! { code => $( $tt )+ }
         }
