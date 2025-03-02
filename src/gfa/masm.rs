@@ -32,7 +32,7 @@
 ///
 /// let code = zk_aluasm! {
 ///     nop                 ;
-///     chk                 ;
+///     chk     CK          ;
 ///     test    E1          ;
 ///     clr     EA          ;
 ///     mov     E2, 0       ;
@@ -90,6 +90,11 @@ macro_rules! instr {
             src: $crate::RegE::$src,
             bits: $crate::gfa::Bits::from_bit_len($bits)
         }.into()
+    };
+
+    // We need it here so this variant is processed in the correct way
+    (mov CO, CK) => {
+        $crate::gfa::Instr::Ctrl($crate::alu::instr! { mov CO, CK }).into()
     };
 
     // Moving value between regs
