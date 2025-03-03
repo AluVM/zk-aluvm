@@ -248,9 +248,7 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
                 step
             }
             Instr::Gfa(instr) => {
-                let mut subcore = Core::from(core.clone());
-                let step = instr.exec(site, &mut subcore, context);
-                *core = subcore.extend(core.cx.clone());
+                let step = instr.exec(site, core, context);
                 step
             }
             Instr::Reserved(instr) => {
