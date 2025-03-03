@@ -69,6 +69,23 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
             }
     }
 
+    fn code_byte_len(&self) -> u16 {
+        let arg_len = match *self {
+            FieldInstr::Test { src: _ } => 1,
+            FieldInstr::Clr { dst: _ } => 1,
+            FieldInstr::PutD { dst: _, data: _ } => 3,
+            FieldInstr::PutZ { dst: _ } => 1,
+            FieldInstr::PutV { dst: _, val: _ } => 1,
+            FieldInstr::Fits { src: _, bits: _ } => 1,
+            FieldInstr::Mov { dst: _, src: _ } => 1,
+            FieldInstr::Eq { src1: _, src2: _ } => 1,
+            FieldInstr::Neg { dst: _, src: _ } => 1,
+            FieldInstr::Add { dst_src: _, src: _ } => 1,
+            FieldInstr::Mul { dst_src: _, src: _ } => 1,
+        };
+        arg_len + 1
+    }
+
     fn encode_operands<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where W: BytecodeWrite<Id> {
         match *self {
@@ -94,10 +111,10 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
                 writer.write_4bits(half)?;
                 writer.write_4bits(dst.to_u4())?;
             }
-            FieldInstr::Fits { src: dst, bits } => {
+            FieldInstr::Fits { src, bits } => {
                 let half = u4::with(TEST_FITS | bits.to_u3().to_u8());
                 writer.write_4bits(half)?;
-                writer.write_4bits(dst.to_u4())?;
+                writer.write_4bits(src.to_u4())?;
             }
             FieldInstr::Mov { dst, src } => {
                 writer.write_4bits(dst.to_u4())?;
@@ -156,8 +173,8 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
                     }
                     x if x & MASK_FITS == TEST_FITS => {
                         let bits = Bits::from(u3::with(sub & !MASK_FITS));
-                        let dst = RegE::from(reader.read_4bits()?);
-                        FieldInstr::Fits { src: dst, bits }
+                        let src = RegE::from(reader.read_4bits()?);
+                        FieldInstr::Fits { src, bits }
                     }
                     _ => unreachable!(),
                 }
@@ -200,6 +217,14 @@ impl<Id: SiteId> Bytecode<Id> for Instr<Id> {
             Instr::Ctrl(instr) => instr.opcode_byte(),
             Instr::Gfa(instr) => Bytecode::<Id>::opcode_byte(instr),
             Instr::Reserved(instr) => Bytecode::<Id>::opcode_byte(instr),
+        }
+    }
+
+    fn code_byte_len(&self) -> u16 {
+        match self {
+            Instr::Ctrl(instr) => instr.code_byte_len(),
+            Instr::Gfa(instr) => Bytecode::<Id>::code_byte_len(instr),
+            Instr::Reserved(instr) => Bytecode::<Id>::code_byte_len(instr),
         }
     }
 

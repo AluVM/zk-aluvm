@@ -34,6 +34,10 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
     type Core = GfaCore;
     type Context<'ctx> = ();
 
+    fn is_local_goto_target(&self) -> bool { false }
+
+    fn local_goto_pos(&mut self) -> Option<&mut u16> { None }
+
     fn src_regs(&self) -> BTreeSet<RegE> {
         match *self {
             FieldInstr::Clr { dst: _ }
@@ -186,6 +190,22 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
     const ISA_EXT: &'static [&'static str] = &[ISA_GFA128];
     type Core = GfaCore;
     type Context<'ctx> = ();
+
+    fn is_local_goto_target(&self) -> bool {
+        match self {
+            Instr::Ctrl(ctrl) => ctrl.is_local_goto_target(),
+            Instr::Gfa(instr) => Instruction::<Id>::is_local_goto_target(instr),
+            Instr::Reserved(reserved) => Instruction::<Id>::is_local_goto_target(reserved),
+        }
+    }
+
+    fn local_goto_pos(&mut self) -> Option<&mut u16> {
+        match self {
+            Instr::Ctrl(ctrl) => ctrl.local_goto_pos(),
+            Instr::Gfa(instr) => Instruction::<Id>::local_goto_pos(instr),
+            Instr::Reserved(reserved) => Instruction::<Id>::local_goto_pos(reserved),
+        }
+    }
 
     fn src_regs(&self) -> BTreeSet<<Self::Core as CoreExt>::Reg> {
         match self {
