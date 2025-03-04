@@ -23,4 +23,4 @@
 mod core;
 mod microcode;
 
-pub use self::core::{GfaCore, RegE};
+pub use self::core::{GfaConfig, GfaCore, RegE, FIELD_ORDER_25519, FIELD_ORDER_SECP, FIELD_ORDER_STARK};

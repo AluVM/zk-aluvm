@@ -45,10 +45,10 @@ pub mod gfa;
 pub mod zkstl;
 mod fe;
 
-pub use aluvm::isa;
 pub use aluvm as alu;
+pub use aluvm::isa;
 pub use fe::{fe256, ParseFeError};
 
-pub use self::core::{GfaCore, RegE};
+pub use self::core::{GfaConfig, GfaCore, RegE, FIELD_ORDER_25519, FIELD_ORDER_SECP, FIELD_ORDER_STARK};
 
 pub const LIB_NAME_FINITE_FIELD: &str = "FiniteField";

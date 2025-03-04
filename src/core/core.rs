@@ -27,20 +27,39 @@ use amplify::num::{u256, u4};
 
 use crate::fe256;
 
+pub const FIELD_ORDER_25519: u256 =
+    u256::from_inner([0xFFFF_FFFF_FFFF_FFEC, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, 0x8FFF_FFFF_FFFF_FFFF]);
+pub const FIELD_ORDER_STARK: u256 = u256::from_inner([1, 0, 17, 0x0800_0000_0000_0000]);
+pub const FIELD_ORDER_SECP: u256 =
+    u256::from_inner([0xFFFF_FFFE_FFFF_FC2E, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF]);
+
+impl Default for GfaConfig {
+    fn default() -> Self {
+        Self {
+            field_order: FIELD_ORDER_25519,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct GfaCore {
     pub(super) fq: u256,
     pub(super) e: [Option<fe256>; 16],
 }
 
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub struct GfaConfig {
+    pub field_order: u256,
+}
+
 impl CoreExt for GfaCore {
     type Reg = RegE;
-    type Config = u256; // Field order
+    type Config = GfaConfig; // Field order
 
     #[inline]
     fn with(config: Self::Config) -> Self {
         GfaCore {
-            fq: config,
+            fq: config.field_order,
             e: [None; 16],
         }
     }
@@ -57,7 +76,7 @@ impl CoreExt for GfaCore {
             self.e[reg as usize] = None;
             return;
         };
-        assert!(val.to_u256() < self.fq);
+        assert!(val.to_u256() < self.fq, "value {val} exceeds field order {}", self.fq);
         self.e[reg as usize] = Some(val);
     }
 

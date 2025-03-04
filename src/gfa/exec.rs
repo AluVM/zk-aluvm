@@ -134,7 +134,7 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             FieldInstr::Test { src } => {
                 let res = core.cx.test(src);
                 core.set_co(res);
-                res
+                Status::Ok
             }
             FieldInstr::Clr { dst } => {
                 core.cx.clr(dst);
@@ -160,7 +160,7 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             FieldInstr::Eq { src1, src2 } => {
                 let res = core.cx.eqv(src1, src2);
                 core.set_co(res);
-                res
+                Status::Ok
             }
 
             FieldInstr::Fits { src, bits } => match core.cx.fits(src, bits) {
@@ -273,8 +273,6 @@ mod test {
         halt: true,
         complexity_lim: None,
     };
-    const FIELD_ORDER_SECP: u256 =
-        u256::from_inner([0xFFFF_FFFE_FFFF_FC2E, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF]);
 
     #[test]
     fn putd() {
@@ -285,7 +283,7 @@ mod test {
         let lib = Lib::assemble(&code).unwrap();
         let lib_id = lib.lib_id();
 
-        let mut vm = Vm::<Instr<LibId>>::with(CONFIG, FIELD_ORDER_SECP);
+        let mut vm = Vm::<Instr<LibId>>::with(CONFIG, default!());
         let resolver = |id: LibId| {
             assert_eq!(id, lib_id);
             Some(&lib)
