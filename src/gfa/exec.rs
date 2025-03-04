@@ -181,7 +181,7 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
         if res == Status::Ok {
             ExecStep::Next
         } else {
-            ExecStep::FailContinue
+            ExecStep::Fail
         }
     }
 }
