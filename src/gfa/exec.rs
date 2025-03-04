@@ -24,7 +24,7 @@ use alloc::collections::BTreeSet;
 
 use aluvm::isa::{ExecStep, Instruction};
 use aluvm::regs::Status;
-use aluvm::{Core, CoreExt, Site, SiteId};
+use aluvm::{Core, CoreExt, Site, SiteId, Supercore};
 
 use super::{FieldInstr, Instr, ISA_GFA128};
 use crate::{fe256, GfaCore, RegE};
@@ -242,9 +242,9 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
     fn exec(&self, site: Site<Id>, core: &mut Core<Id, Self::Core>, context: &Self::Context<'_>) -> ExecStep<Site<Id>> {
         match self {
             Instr::Ctrl(instr) => {
-                let mut subcore = Core::from(core.clone());
+                let mut subcore = core.subcore();
                 let step = instr.exec(site, &mut subcore, context);
-                *core = subcore.extend(core.cx.clone());
+                core.merge_subcore(subcore);
                 step
             }
             Instr::Gfa(instr) => {
@@ -252,11 +252,47 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
                 step
             }
             Instr::Reserved(instr) => {
-                let mut subcore = Core::from(core.clone());
+                let mut subcore = core.subcore();
                 let step = instr.exec(site, &mut subcore, context);
-                *core = subcore.extend(core.cx.clone());
+                core.merge_subcore(subcore);
                 step
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use aluvm::{CoreConfig, Lib, LibId, LibSite, Vm};
+    use amplify::num::u256;
+
+    use super::*;
+    use crate::zk_aluasm;
+
+    const CONFIG: CoreConfig = CoreConfig {
+        halt: true,
+        complexity_lim: None,
+    };
+    const FIELD_ORDER_SECP: u256 =
+        u256::from_inner([0xFFFF_FFFE_FFFF_FC2E, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF]);
+
+    #[test]
+    fn putd() {
+        const VAL: u256 = u256::from_inner([73864950, 463656, 3456556, 23456657]);
+        let code = zk_aluasm! {
+            mov EA, :VAL;
+        };
+        let lib = Lib::assemble(&code).unwrap();
+        let lib_id = lib.lib_id();
+
+        let mut vm = Vm::<Instr<LibId>>::with(CONFIG, FIELD_ORDER_SECP);
+        let resolver = |id: LibId| {
+            assert_eq!(id, lib_id);
+            Some(&lib)
+        };
+        let res = vm.exec(LibSite::new(lib_id, 0), &(), resolver).is_ok();
+        assert!(res);
+
+        assert_eq!(vm.core.cx.get(RegE::EA), Some(fe256::from(VAL)));
     }
 }

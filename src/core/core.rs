@@ -22,7 +22,7 @@
 
 use core::fmt::{self, Debug, Formatter};
 
-use aluvm::{CoreExt, NoExt, Register};
+use aluvm::{CoreExt, NoExt, Register, Supercore};
 use amplify::num::{u256, u4};
 
 use crate::fe256;
@@ -65,6 +65,12 @@ impl CoreExt for GfaCore {
     fn reset(&mut self) { self.e = [None; 16]; }
 }
 
+impl Supercore<NoExt> for GfaCore {
+    fn subcore(&self) -> NoExt { NoExt }
+
+    fn merge_subcore(&mut self, _subcore: NoExt) {}
+}
+
 impl Debug for GfaCore {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let (sect, reg, val, reset) =
@@ -83,10 +89,6 @@ impl Debug for GfaCore {
         }
         writeln!(f)
     }
-}
-
-impl From<GfaCore> for NoExt {
-    fn from(_: GfaCore) -> Self { NoExt }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Display)]
