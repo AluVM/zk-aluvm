@@ -48,44 +48,45 @@ pub enum Instr<Id: SiteId> {
 pub enum FieldInstr {
     /// Tests if register contains a value and is not set to `None`.
     ///
-    /// Sets `co` register to `true` if a register contains a value, and to `false` otherwise.
+    /// Sets `CO` register to [`Status::Ok`] if a register contains a value, and to [`Status::Fail`]
+    /// otherwise.
     ///
-    /// Doesn't affect value in `ck` register.
+    /// Doesn't affect value in `CK` register.
     #[display("test    {src}")]
     Test { src: RegE },
 
     /// Clears register value by setting it to `None`.
     ///
-    /// Doesn't affect values in `co` and `ck` registers.
+    /// Doesn't affect values in `CO` and `CK` registers.
     #[display("clr     {dst}")]
     Clr { dst: RegE },
 
     /// Puts value into a register, replacing previous value in it, if there was any.
     ///
-    /// Doesn't affect values in `co` and `ck` registers.
+    /// Doesn't affect values in `CO` and `CK` registers.
     #[display("mov     {dst}, {data}")]
     PutD { dst: RegE, data: fe256 },
 
     /// Puts zero (`0`) value into a register, replacing previous value in it, if there was any.
     ///
-    /// Doesn't affect values in `co` and `ck` registers.
+    /// Doesn't affect values in `CO` and `CK` registers.
     #[display("mov     {dst}, 0")]
     PutZ { dst: RegE },
 
     /// Puts `val` value, which is a power of 2, into a register, replacing previous value in it, if
     /// there was any.
     ///
-    /// Doesn't affect values in `co` and `ck` registers.
+    /// Doesn't affect values in `CO` and `CK` registers.
     #[display("mov     {dst}, {val}")]
     PutV { dst: RegE, val: ConstVal },
 
     /// Test whether a value in a register fits in the provided number of bits.
     ///
-    /// Sets `co` register to `true` if the value fits given number of bits, and to `false`
-    /// otherwise.
+    /// Sets `CO` register to [`Status::Ok`] if the value fits given number of bits, and to
+    /// [`Status::Fail`] otherwise.
     ///
-    /// If `src` is set to `None`, sets both `co` and `ck` to `false`; otherwise leaves value in
-    /// `ck` unchanged.
+    /// If `src` is set to `None`, sets both `CO` and `CK` to [`Status::Fail`]; otherwise leaves
+    /// value in `CK` unchanged.
     #[display("fits    {src}, {bits}")]
     Fits { src: RegE, bits: Bits },
 
@@ -93,44 +94,45 @@ pub enum FieldInstr {
     /// `src` has no value (i.e. set to `None`), sets `dst` to `None`. State of `src` register
     /// remains unaffected.
     ///
-    /// Doesn't affect values in `co` and `ck` registers.
+    /// Doesn't affect values in `CO` and `CK` registers.
     #[display("mov     {dst}, {src}")]
     Mov { dst: RegE, src: RegE },
 
     /// Checks whether `src1` and `src2` registers are equal. If both `src1` and `src2` registers
     /// contain no value, considers them equal.
     ///
-    /// Sets `co` register to a boolean representing equivalence of the registers.
+    /// Sets `CO` register to represent equivalence of the registers.
     ///
-    /// Doesn't affect value in `ck` register.
+    /// Doesn't affect value in `CK` register.
     #[display("eq      {src1}, {src2}")]
     Eq { src1: RegE, src2: RegE },
 
     /// Negate value in `src` using finite-field arithmetics, and put result into `dst`.
     ///
-    /// Doesn't affect values in `co` register.
+    /// Doesn't affect values in `CO` register.
     ///
-    /// If `src` is set to `None`, sets `ck` to `false`; otherwise leaves value in  `ck` unchanged.
+    /// If `src` is set to `None`, sets `CK` to [`Status::Fail`]; otherwise leaves value in  `CK`
+    /// unchanged.
     #[display("neg     {dst}, {src}")]
     Neg { dst: RegE, src: RegE },
 
     /// Add `src` value to `dst_src` value using finite-field (modulo) arithmetics of the `order`,
     /// putting result to `dst_src`.
     ///
-    /// Doesn't affect values in `co` register.
+    /// Doesn't affect values in `CO` register.
     ///
-    /// If either `src` or `dst_src` (or both) is set to `None`, sets `ck` to `false`; otherwise
-    /// leaves value in  `ck` unchanged.
+    /// If either `src` or `dst_src` (or both) is set to `None`, sets `CK` to [`Status::Fail`];
+    /// otherwise leaves value in  `CK` unchanged.
     #[display("add     {dst_src}, {src}")]
     Add { dst_src: RegE, src: RegE },
 
     /// Multiply `src` value to `dst_src` value using finite-field (modulo) arithmetics of the
     /// `order`, putting result to `dst_src`.
     ///
-    /// Doesn't affect values in `co` register.
+    /// Doesn't affect values in `CO` register.
     ///
-    /// If either `src` or `dst_src` (or both) is set to `None`, sets `ck` to `false`; otherwise
-    /// leaves value in  `ck` unchanged.
+    /// If either `src` or `dst_src` (or both) is set to `None`, sets `CK` to [`Status::Fail`];
+    /// otherwise leaves value in  `CK` unchanged.
     #[display("mul     {dst_src}, {src}")]
     Mul { dst_src: RegE, src: RegE },
 }
