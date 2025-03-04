@@ -51,32 +51,32 @@ pub enum FieldInstr {
     /// Sets `co` register to `true` if a register contains a value, and to `false` otherwise.
     ///
     /// Doesn't affect value in `ck` register.
-    #[display("test     {src}")]
+    #[display("test    {src}")]
     Test { src: RegE },
 
     /// Clears register value by setting it to `None`.
     ///
     /// Doesn't affect values in `co` and `ck` registers.
-    #[display("clr      {dst}")]
+    #[display("clr     {dst}")]
     Clr { dst: RegE },
 
     /// Puts value into a register, replacing previous value in it, if there was any.
     ///
     /// Doesn't affect values in `co` and `ck` registers.
-    #[display("mov      {dst}, {data}")]
+    #[display("mov     {dst}, {data}")]
     PutD { dst: RegE, data: fe256 },
 
     /// Puts zero (`0`) value into a register, replacing previous value in it, if there was any.
     ///
     /// Doesn't affect values in `co` and `ck` registers.
-    #[display("mov      {dst}, 0")]
+    #[display("mov     {dst}, 0")]
     PutZ { dst: RegE },
 
     /// Puts `val` value, which is a power of 2, into a register, replacing previous value in it, if
     /// there was any.
     ///
     /// Doesn't affect values in `co` and `ck` registers.
-    #[display("mov      {dst}, {val}")]
+    #[display("mov     {dst}, {val}")]
     PutV { dst: RegE, val: ConstVal },
 
     /// Test whether a value in a register fits in the provided number of bits.
@@ -86,7 +86,7 @@ pub enum FieldInstr {
     ///
     /// If `src` is set to `None`, sets both `co` and `ck` to `false`; otherwise leaves value in
     /// `ck` unchanged.
-    #[display("fits     {src}, {bits}")]
+    #[display("fits    {src}, {bits}")]
     Fits { src: RegE, bits: Bits },
 
     /// Moves (copies) value from `src` to `dst` register, overwriting previous value in `dst`. If
@@ -94,7 +94,7 @@ pub enum FieldInstr {
     /// remains unaffected.
     ///
     /// Doesn't affect values in `co` and `ck` registers.
-    #[display("mov      {dst}, {src}")]
+    #[display("mov     {dst}, {src}")]
     Mov { dst: RegE, src: RegE },
 
     /// Checks whether `src1` and `src2` registers are equal. If both `src1` and `src2` registers
@@ -103,7 +103,7 @@ pub enum FieldInstr {
     /// Sets `co` register to a boolean representing equivalence of the registers.
     ///
     /// Doesn't affect value in `ck` register.
-    #[display("eq       {src1}, {src2}")]
+    #[display("eq      {src1}, {src2}")]
     Eq { src1: RegE, src2: RegE },
 
     /// Negate value in `src` using finite-field arithmetics, and put result into `dst`.
@@ -111,7 +111,7 @@ pub enum FieldInstr {
     /// Doesn't affect values in `co` register.
     ///
     /// If `src` is set to `None`, sets `ck` to `false`; otherwise leaves value in  `ck` unchanged.
-    #[display("neg      {dst}, {src}")]
+    #[display("neg     {dst}, {src}")]
     Neg { dst: RegE, src: RegE },
 
     /// Add `src` value to `dst_src` value using finite-field (modulo) arithmetics of the `order`,
@@ -121,7 +121,7 @@ pub enum FieldInstr {
     ///
     /// If either `src` or `dst_src` (or both) is set to `None`, sets `ck` to `false`; otherwise
     /// leaves value in  `ck` unchanged.
-    #[display("add      {dst_src}, {src}")]
+    #[display("add     {dst_src}, {src}")]
     Add { dst_src: RegE, src: RegE },
 
     /// Multiply `src` value to `dst_src` value using finite-field (modulo) arithmetics of the
@@ -131,7 +131,7 @@ pub enum FieldInstr {
     ///
     /// If either `src` or `dst_src` (or both) is set to `None`, sets `ck` to `false`; otherwise
     /// leaves value in  `ck` unchanged.
-    #[display("mul      {dst_src}, {src}")]
+    #[display("mul     {dst_src}, {src}")]
     Mul { dst_src: RegE, src: RegE },
 }
 
