@@ -86,6 +86,8 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
         arg_len + 1
     }
 
+    fn external_ref(&self) -> Option<Id> { None }
+
     fn encode_operands<W>(&self, writer: &mut W) -> Result<(), W::Error>
     where W: BytecodeWrite<Id> {
         match *self {
@@ -225,6 +227,14 @@ impl<Id: SiteId> Bytecode<Id> for Instr<Id> {
             Instr::Ctrl(instr) => instr.code_byte_len(),
             Instr::Gfa(instr) => Bytecode::<Id>::code_byte_len(instr),
             Instr::Reserved(instr) => Bytecode::<Id>::code_byte_len(instr),
+        }
+    }
+
+    fn external_ref(&self) -> Option<Id> {
+        match self {
+            Instr::Ctrl(instr) => instr.external_ref(),
+            Instr::Gfa(instr) => Bytecode::<Id>::external_ref(instr),
+            Instr::Reserved(instr) => Bytecode::<Id>::external_ref(instr),
         }
     }
 
