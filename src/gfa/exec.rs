@@ -34,9 +34,11 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
     type Core = GfaCore;
     type Context<'ctx> = ();
 
-    fn is_local_goto_target(&self) -> bool { false }
+    fn is_goto_target(&self) -> bool { false }
 
     fn local_goto_pos(&mut self) -> Option<&mut u16> { None }
+
+    fn remote_goto_pos(&mut self) -> Option<&mut Site<Id>> { None }
 
     fn src_regs(&self) -> BTreeSet<RegE> {
         match *self {
@@ -191,11 +193,11 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
     type Core = GfaCore;
     type Context<'ctx> = ();
 
-    fn is_local_goto_target(&self) -> bool {
+    fn is_goto_target(&self) -> bool {
         match self {
-            Instr::Ctrl(ctrl) => ctrl.is_local_goto_target(),
-            Instr::Gfa(instr) => Instruction::<Id>::is_local_goto_target(instr),
-            Instr::Reserved(reserved) => Instruction::<Id>::is_local_goto_target(reserved),
+            Instr::Ctrl(ctrl) => ctrl.is_goto_target(),
+            Instr::Gfa(instr) => Instruction::<Id>::is_goto_target(instr),
+            Instr::Reserved(reserved) => Instruction::<Id>::is_goto_target(reserved),
         }
     }
 
@@ -204,6 +206,14 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
             Instr::Ctrl(ctrl) => ctrl.local_goto_pos(),
             Instr::Gfa(instr) => Instruction::<Id>::local_goto_pos(instr),
             Instr::Reserved(reserved) => Instruction::<Id>::local_goto_pos(reserved),
+        }
+    }
+
+    fn remote_goto_pos(&mut self) -> Option<&mut Site<Id>> {
+        match self {
+            Instr::Ctrl(ctrl) => ctrl.remote_goto_pos(),
+            Instr::Gfa(instr) => Instruction::<Id>::remote_goto_pos(instr),
+            Instr::Reserved(reserved) => Instruction::<Id>::remote_goto_pos(reserved),
         }
     }
 

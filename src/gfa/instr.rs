@@ -183,28 +183,28 @@ impl ConstVal {
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[repr(u8)]
 pub enum Bits {
-    #[display("8")]
+    #[display("8:bits")]
     Bits8,
 
-    #[display("16")]
+    #[display("16:bits")]
     Bits16,
 
-    #[display("24")]
+    #[display("24:bits")]
     Bits24,
 
-    #[display("32")]
+    #[display("32:bits")]
     Bits32,
 
-    #[display("48")]
+    #[display("48:bits")]
     Bits48,
 
-    #[display("64")]
+    #[display("64:bits")]
     Bits64,
 
-    #[display("96")]
+    #[display("96:bits")]
     Bits96,
 
-    #[display("128")]
+    #[display("128:bits")]
     Bits128,
 }
 
