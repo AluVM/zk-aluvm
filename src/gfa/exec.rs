@@ -124,9 +124,8 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
             | FieldInstr::Neg { dst: _, src: _ }
             | FieldInstr::Add { dst_src: _, src: _ }
             | FieldInstr::Mul { dst_src: _, src: _ } => {
-                // Double the default complexity since each instruction performs two operations (and each
-                // arithmetic operations is x10 of move operation).
-                base * 20
+                // Double the default complexity since each instruction performs two operations.
+                base * 2
             }
         }
     }
