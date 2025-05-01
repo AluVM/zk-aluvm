@@ -1,7 +1,7 @@
 [package]
 name = "zk-aluvm"
 description = "AluVM extensions for zero knowledge, STARKs and SNARKs"
-version = "0.12.0-beta.5"
+version = "0.12.0-beta.6"
 authors = ["Dr Maxim Orlovsky <orlovsky@ubideco.org>"]
 repository = "https://github.com/aluvm/zk-aluvm"
 homepage = "https://aluvm.org"
@@ -18,9 +18,9 @@ name = "zkaluvm"
 
 [dependencies]
 amplify = { version = "~4.8.0", default-features = false, features = ["derive"] }
-strict_encoding = { version = "~2.8.1", default-features = false, features = ["derive"] }
-strict_types = { version = "~2.8.2", optional = true }
-aluvm = "=0.12.0-beta.5"
+strict_encoding = { version = "~2.8.2", default-features = false, features = ["derive"] }
+strict_types = { version = "~2.8.3", optional = true }
+aluvm = "=0.12.0-beta.6"
 serde = { version = "1", optional = true }
 
 [dev-dependencies]
@@ -47,6 +47,3 @@ wasm-bindgen-test = "0.3"
 
 [package.metadata.docs.rs]
 features = ["all"]
-
-[patch.crates-io]
-aluvm = { git = "https://github.com/AluVM/aluvm", branch = "master" }

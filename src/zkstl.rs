@@ -30,11 +30,9 @@ use crate::{fe256, LIB_NAME_FINITE_FIELD};
 pub const LIB_ID_FINITE_FIELD: &str = "stl:Nm0yhN4V-rj3RTrE-tXIS14e-JV1OFTx-zPNhRZU-54QW0tg#report-canal-convert";
 
 fn _finite_field_stl() -> Result<TypeLib, CompileError> {
-    LibBuilder::new(LIB_NAME_FINITE_FIELD, tiny_bset! {
-        strict_types::stl::std_stl().to_dependency(),
-    })
-    .transpile::<fe256>()
-    .compile()
+    LibBuilder::with(LIB_NAME_FINITE_FIELD, [strict_types::stl::std_stl().to_dependency_types()])
+        .transpile::<fe256>()
+        .compile()
 }
 
 /// Generates strict type lib-old providing data types from this crate.
