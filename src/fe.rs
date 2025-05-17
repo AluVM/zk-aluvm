@@ -30,6 +30,9 @@ use strict_encoding::{StrictDecode, StrictProduct, StrictTuple, StrictType, Type
 
 use crate::LIB_NAME_FINITE_FIELD;
 
+/// Element of a Galois finite field.
+///
+/// Maximum size is 256 bits.
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Display, From)]
 #[display("{0:X}.fe", alt = "{0:064X}.fe")]
@@ -45,8 +48,10 @@ pub struct fe256(
 );
 
 impl fe256 {
+    /// Zero element of the field.
     pub const ZERO: Self = Self(u256::ZERO);
 
+    /// Construct a field element from a 256-bit unsigned integer value.
     pub const fn to_u256(&self) -> u256 { self.0 }
 }
 
@@ -106,12 +111,14 @@ mod _serde {
     }
 }
 
+/// Errors parsing field elements.
 #[derive(Clone, PartialEq, Eq, Debug, Display, Error, From)]
-#[display(doc_comments)]
 pub enum ParseFeError {
-    /// field element `{0}` must have a `.fe` suffix.
+    /// Missed `.fe` suffix.
+    #[display("field element `{0}` must have a `.fe` suffix.")]
     NoSuffix(String),
 
+    /// Invalid hex value.
     #[from]
     #[display(inner)]
     Value(hex::Error),

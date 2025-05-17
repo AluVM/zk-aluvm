@@ -29,9 +29,11 @@ use amplify::num::{u2, u256, u3, u4};
 use super::{Bits, ConstVal, FieldInstr, Instr};
 use crate::{fe256, RegE};
 
-#[allow(clippy::identity_op)]
+#[allow(missing_docs, clippy::identity_op)]
 impl FieldInstr {
+    /// The initial value of the instruction op codes.
     pub const START: u8 = 64;
+    /// The ending value of the instruction op codes.
     pub const END: u8 = Self::MUL;
 
     pub const SET: u8 = Self::START + 0;

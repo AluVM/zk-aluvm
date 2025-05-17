@@ -26,6 +26,8 @@ use amplify::num::{u2, u3};
 
 use crate::{fe256, RegE};
 
+/// Instruction set, which includes core AluVM control-flow instructions and GFA256 ISA extension
+/// (see [`FieldInstr`]).
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display, From)]
 #[display(inner)]
 #[non_exhaustive]
@@ -34,6 +36,7 @@ pub enum Instr<Id: SiteId> {
     #[from]
     Ctrl(CtrlInstr<Id>),
 
+    /// Arithmetic instructions for finite fields.
     #[from]
     Gfa(FieldInstr),
 
@@ -53,32 +56,51 @@ pub enum FieldInstr {
     ///
     /// Does not affect the value in the `CK` register.
     #[display("test    {src}")]
-    Test { src: RegE },
+    Test {
+        /** The source register */
+        src: RegE,
+    },
 
     /// Clears register value by setting it to `None`.
     ///
     /// Does not affect values in the `CO` and `CK` registers.
     #[display("clr     {dst}")]
-    Clr { dst: RegE },
+    Clr {
+        /** The destination register */
+        dst: RegE,
+    },
 
     /// Puts value into a register, replacing the previous value in it if there was any.
     ///
     /// Does not affect values in the `CO` and `CK` registers.
     #[display("put     {dst}, {data}")]
-    PutD { dst: RegE, data: fe256 },
+    PutD {
+        /** The destination register */
+        dst: RegE,
+        /** Finite field element taken from the data segment, used to initialize the register */
+        data: fe256,
+    },
 
     /// Puts zero (`0`) value into a register, replacing the previous value in it if there was any.
     ///
     /// Does not affect values in the `CO` and `CK` registers.
     #[display("put     {dst}, 0")]
-    PutZ { dst: RegE },
+    PutZ {
+        /** The destination register */
+        dst: RegE,
+    },
 
     /// Puts `val` value, which is a power of 2, into a register, replacing the previous value in
     /// it if there was any.
     ///
     /// Does not affect values in the `CO` and `CK` registers.
     #[display("put     {dst}, {val}")]
-    PutV { dst: RegE, val: ConstVal },
+    PutV {
+        /** The destination register */
+        dst: RegE,
+        /** A constant finite field element used to initialize the register */
+        val: ConstVal,
+    },
 
     /// Test whether a value in a register fits in the provided number of bits.
     ///
@@ -88,7 +110,12 @@ pub enum FieldInstr {
     /// If `src` is set to `None`, sets both `CO` and `CK` to [`Status::Fail`]; otherwise leaves
     /// value in the `CK` unchanged.
     #[display("fits    {src}, {bits}")]
-    Fits { src: RegE, bits: Bits },
+    Fits {
+        /** The source register */
+        src: RegE,
+        /** The maximum bit dimension which the source register value must fit into */
+        bits: Bits,
+    },
 
     /// Moves (copies) value from `src` to `dst` register, overwriting the previous value in `dst`.
     /// If `src` has no value (i.e., set to `None`), sets `dst` to `None`.
@@ -97,7 +124,12 @@ pub enum FieldInstr {
     ///
     /// Does not affect values in the `CO` and `CK` registers.
     #[display("mov     {dst}, {src}")]
-    Mov { dst: RegE, src: RegE },
+    Mov {
+        /** The destination register */
+        dst: RegE,
+        /** The source register */
+        src: RegE,
+    },
 
     /// Checks whether `src1` and `src2` registers are equal.
     ///
@@ -106,7 +138,12 @@ pub enum FieldInstr {
     ///
     /// Does not affect the value in the `CK` register.
     #[display("eq      {src1}, {src2}")]
-    Eq { src1: RegE, src2: RegE },
+    Eq {
+        /** The first source register */
+        src1: RegE,
+        /** The second source register */
+        src2: RegE,
+    },
 
     /// Negate value in `src` using finite-field arithmetics, and put result into `dst`.
     ///
@@ -115,7 +152,12 @@ pub enum FieldInstr {
     /// If `src` is set to `None`, sets `CK` to [`Status::Fail`]; otherwise leaves value in  `CK`
     /// unchanged.
     #[display("neg     {dst}, {src}")]
-    Neg { dst: RegE, src: RegE },
+    Neg {
+        /** The destination register */
+        dst: RegE,
+        /** The source register */
+        src: RegE,
+    },
 
     /// Add `src` value to `dst_src` value using finite-field (modulo) arithmetics of the `FQ`
     /// order, putting the result to `dst_src`.
@@ -125,7 +167,12 @@ pub enum FieldInstr {
     /// If either `src` or `dst_src` (or both) is set to `None`, sets `CK` to [`Status::Fail`];
     /// otherwise leaves value in the `CK` unchanged.
     #[display("add     {dst_src}, {src}")]
-    Add { dst_src: RegE, src: RegE },
+    Add {
+        /** The first source and the destination register */
+        dst_src: RegE,
+        /** The second source register */
+        src: RegE,
+    },
 
     /// Multiply `src` value to `dst_src` value using finite-field (modulo) arithmetics of the
     /// `FQ` order, putting the result to `dst_src`.
@@ -135,21 +182,36 @@ pub enum FieldInstr {
     /// If either `src` or `dst_src` (or both) is set to `None`, sets `CK` to [`Status::Fail`];
     /// otherwise leaves value in the `CK` unchanged.
     #[display("mul     {dst_src}, {src}")]
-    Mul { dst_src: RegE, src: RegE },
+    Mul {
+        /** The first source and the destination register */
+        dst_src: RegE,
+        /** The second source register */
+        src: RegE,
+    },
 }
 
+/// A predefined constant field element for a register initialization.
+///
+/// These constants are used to keep the space and complexity metric of the code low, since reading
+/// a field element from the data segment will take 16 bytes in the code segment; while initializing
+/// with a common constant will take just 2 bits.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[repr(u8)]
 pub enum ConstVal {
+    /// Zero field element.
     #[display("1")]
     Val1 = 0,
 
+    /// Field element equal to the [`u64::MAX`].
     #[display("ffff_ffff_ffff_ffff#h")]
     ValU64Max = 1,
 
+    /// Field element equal to the [`u128::MAX`].
     #[display("ffff_ffff_ffff_ffff_ffff_ffff_ffff_ffff#h")]
     ValU128Max = 2,
 
+    /// Field element equal to the finite field order minus one. The finite field order value is
+    /// taken from the constant `FQ` register.
     #[display("-1#fe")]
     ValFeMAX = 3,
 }
@@ -167,9 +229,13 @@ impl From<u2> for ConstVal {
 }
 
 impl ConstVal {
+    /// Get a 2-bit representation of the constant value.
     #[inline]
     pub const fn to_u2(self) -> u2 { u2::with(self as u8) }
 
+    /// Get a finite field element corresponding to the constant.
+    ///
+    /// Returns `None` for the [`ConstVal::ValFeMAX`].
     pub fn to_fe256(self) -> Option<fe256> {
         let val = match self {
             ConstVal::Val1 => 1u128,
@@ -181,30 +247,40 @@ impl ConstVal {
     }
 }
 
+/// Maximum bit dimension which a register value should fit (used in [`FieldInstr::Fits`]
+/// instruction).
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[repr(u8)]
 pub enum Bits {
+    /// 8 bits (a byte).
     #[display("8.bits")]
     Bits8,
 
+    /// 16 bits (two bytes).
     #[display("16.bits")]
     Bits16,
 
+    /// 24 bits (three bytes).
     #[display("24.bits")]
     Bits24,
 
+    /// 32 bits (four bytes).
     #[display("32.bits")]
     Bits32,
 
+    /// 48 bits (six bytes).
     #[display("48.bits")]
     Bits48,
 
+    /// 64 bits (8 bytes).
     #[display("64.bits")]
     Bits64,
 
+    /// 96 bits (12 bytes).
     #[display("96.bits")]
     Bits96,
 
+    /// 128 bits (16 bytes).
     #[display("128.bits")]
     Bits128,
 }
@@ -226,9 +302,15 @@ impl From<u3> for Bits {
 }
 
 impl Bits {
+    /// Get a 3-bit representation of the bit dimension variant.
     #[inline]
     pub const fn to_u3(self) -> u3 { u3::with(self as u8) }
 
+    /// Construct a dimension variant a bit out of bit length.
+    ///
+    /// # Panics
+    ///
+    /// If there is no enum variant matching the provided bit length.
     pub fn from_bit_len(len: usize) -> Self {
         match len {
             8 => Bits::Bits8,
@@ -243,6 +325,7 @@ impl Bits {
         }
     }
 
+    /// Returns a bit length corresponding to the enum variant.
     pub const fn bit_len(self) -> usize {
         match self {
             Bits::Bits8 => 8,

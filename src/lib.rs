@@ -23,7 +23,7 @@
 #![deny(
     unsafe_code,
     dead_code,
-    // missing_docs,
+    missing_docs,
     unused_variables,
     unused_mut,
     unused_imports,
@@ -34,6 +34,8 @@
 #![allow(clippy::bool_assert_comparison)]
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
+
+//! AluVM ISA extension for zero knowledge applications, implementing Galois field arithmetics.
 
 extern crate alloc;
 
@@ -55,4 +57,5 @@ pub use fe::{fe256, ParseFeError};
 
 pub use self::core::{GfaConfig, GfaCore, RegE, FIELD_ORDER_25519, FIELD_ORDER_SECP, FIELD_ORDER_STARK};
 
+/// Name for the strict type library.
 pub const LIB_NAME_FINITE_FIELD: &str = "FiniteField";

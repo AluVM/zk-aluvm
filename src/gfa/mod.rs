@@ -30,4 +30,5 @@ mod masm;
 
 pub use instr::{Bits, ConstVal, FieldInstr, Instr};
 
+/// AluVM ISA extension name.
 pub const ISA_GFA256: &str = "GFA256";
