@@ -26,16 +26,14 @@ use amplify::confinement::TinyBlob;
 use amplify::hex::FromHex;
 use amplify::num::u256;
 use amplify::{hex, Bytes32, Wrapper};
-use strict_encoding::{
-    DecodeError, ReadTuple, StrictDecode, StrictProduct, StrictTuple, StrictType, TypeName, TypedRead,
-};
+use strict_encoding::{StrictDecode, StrictProduct, StrictTuple, StrictType, TypeName};
 
 use crate::LIB_NAME_FINITE_FIELD;
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Display, From)]
 #[display("{0:X}.fe")]
-#[derive(StrictDumb, StrictEncode)]
+#[derive(StrictDumb, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_FINITE_FIELD)]
 pub struct fe256(
     #[from(u8)]
@@ -48,9 +46,6 @@ pub struct fe256(
 
 impl fe256 {
     pub const ZERO: Self = Self(u256::ZERO);
-
-    #[must_use]
-    fn test_value(val: u256) -> bool { val.into_inner()[3] & 0xF800_0000_0000_0000 == 0 }
 
     pub const fn to_u256(&self) -> u256 { self.0 }
 }
@@ -67,17 +62,7 @@ impl From<[u8; 32]> for fe256 {
 }
 
 impl From<u256> for fe256 {
-    fn from(val: u256) -> Self {
-        // We make sure we are well below any commonly used field order
-        assert!(
-            Self::test_value(val),
-            "the provided value for 256-bit field element is in a risk zone above order of some commonly used 256-bit \
-             finite fields. The probability of this event for randomly-generated values (including the ones coming \
-             from hashes) is astronomically low, thus, an untrusted input is used in an unfiltered way. Adjust your \
-             code and do not use externally-provided values without checking them first."
-        );
-        Self(val)
-    }
+    fn from(val: u256) -> Self { Self(val) }
 }
 
 impl StrictType for fe256 {
@@ -87,20 +72,6 @@ impl StrictType for fe256 {
 impl StrictProduct for fe256 {}
 impl StrictTuple for fe256 {
     const FIELD_COUNT: u8 = 1;
-}
-impl StrictDecode for fe256 {
-    fn strict_decode(reader: &mut impl TypedRead) -> Result<Self, DecodeError> {
-        reader.read_tuple(|r| {
-            let val = r.read_field::<u256>()?;
-            if !Self::test_value(val) {
-                return Err(DecodeError::DataIntegrityError(format!(
-                    "the provided value {val:#X} for a field element is above the order of some of the finite fields \
-                     and is disallowed"
-                )));
-            }
-            Ok(Self(val))
-        })
-    }
 }
 
 #[cfg(feature = "serde")]
@@ -129,13 +100,6 @@ mod _serde {
                 Self::from_str(&s).map_err(|e| D::Error::invalid_value(Unexpected::Str(&s), &e.to_string().as_str()))
             } else {
                 let val = u256::deserialize(deserializer)?;
-                if !Self::test_value(val) {
-                    return Err(D::Error::invalid_value(
-                        Unexpected::Bytes(&val.to_le_bytes()),
-                        &"the value for a field element is above the order of some of the finite fields and is \
-                          disallowed",
-                    ));
-                }
                 Ok(Self(val))
             }
         }
@@ -151,9 +115,6 @@ pub enum ParseFeError {
     #[from]
     #[display(inner)]
     Value(hex::Error),
-
-    /// value {0:#x} overflows safe range for field element values.
-    Overflow(u256),
 }
 
 impl FromStr for fe256 {
@@ -170,9 +131,6 @@ impl FromStr for fe256 {
         }
         buf[..bytes.len()].copy_from_slice(bytes.as_slice());
         let val = u256::from_le_bytes(buf);
-        if !Self::test_value(val) {
-            return Err(ParseFeError::Overflow(val));
-        }
         Ok(Self(val))
     }
 }

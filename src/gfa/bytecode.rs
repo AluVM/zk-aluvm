@@ -149,7 +149,7 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
     {
         Ok(match opcode - Self::START {
             Self::SET => {
-                let sub = u4::from(reader.read_4bits()?).to_u8();
+                let sub = reader.read_4bits()?.to_u8();
                 match sub {
                     SUB_TEST => {
                         let src = RegE::from(reader.read_4bits()?);
@@ -266,6 +266,7 @@ impl<Id: SiteId> Bytecode<Id> for Instr<Id> {
 
 #[cfg(test)]
 mod test {
+    #![cfg_attr(coverage_nightly, coverage(off))]
     use core::str::FromStr;
 
     use aluvm::{LibId, LibsSeg, Marshaller};
@@ -285,7 +286,7 @@ mod test {
         let (code, data) = marshaller.finish();
         assert_eq!(code.as_slice(), bytecode.as_ref());
         if let Some(d) = dataseg {
-            assert_eq!(data.as_slice(), d.as_ref());
+            assert_eq!(data.as_slice(), d);
         } else {
             assert!(data.is_empty());
         }

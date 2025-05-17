@@ -22,13 +22,14 @@
 
 use aluvm::regs::Status;
 use aluvm::CoreExt;
-use amplify::num::u256;
+use amplify::num::{u256, u512};
 
 use crate::gfa::Bits;
 use crate::{fe256, GfaCore, RegE};
 
 /// Microcode for finite field arithmetics.
 impl GfaCore {
+    /// Get value of the field order register (`FQ`).
     pub fn fq(&self) -> u256 { self.fq }
 
     pub fn test(&self, src: RegE) -> Status {
@@ -61,7 +62,7 @@ impl GfaCore {
     pub fn eqv(&mut self, src1: RegE, src2: RegE) -> Status {
         let a = self.get(src1);
         let b = self.get(src2);
-        if a == b {
+        if a == b && a.is_some() {
             Status::Ok
         } else {
             Status::Fail
@@ -132,10 +133,10 @@ impl GfaCore {
 }
 
 fn mul_mod_int(order: u256, a: u256, b: u256) -> (u256, bool) {
-    let (mut res, overflow) = a.overflowing_mul(b);
-    if overflow {
-        let rem = u256::MAX - order;
-        res = mul_mod_int(order, res, rem).0;
-    }
-    (res % order, overflow)
+    let a = u512::from(a);
+    let b = u512::from(b);
+    let c = a * b;
+    let o = u512::from(order);
+    let res = u256::from_le_slice(&(c % o).to_le_bytes()[..32]).expect("");
+    (res, c >= o)
 }

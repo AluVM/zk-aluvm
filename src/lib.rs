@@ -21,14 +21,18 @@
 // the License.
 
 #![deny(
-    non_upper_case_globals,
-    non_camel_case_types,
-    non_snake_case,
+    unsafe_code,
+    dead_code,
+    // missing_docs,
+    unused_variables,
     unused_mut,
     unused_imports,
-    dead_code,
-    // missing_docs
+    non_upper_case_globals,
+    non_camel_case_types,
+    non_snake_case
 )]
+#![allow(clippy::bool_assert_comparison)]
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 extern crate alloc;

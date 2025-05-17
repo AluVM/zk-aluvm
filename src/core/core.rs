@@ -43,6 +43,7 @@ impl Default for GfaConfig {
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct GfaCore {
+    /// Used field order.
     pub(super) fq: u256,
     pub(super) e: [Option<fe256>; 16],
 }
@@ -90,6 +91,7 @@ impl Supercore<NoExt> for GfaCore {
     fn merge_subcore(&mut self, _subcore: NoExt) {}
 }
 
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Debug for GfaCore {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let (sect, reg, val, reset) =
