@@ -30,4 +30,4 @@ mod masm;
 
 pub use instr::{Bits, ConstVal, FieldInstr, Instr};
 
-pub const ISA_GFA128: &str = "GFA128";
+pub const ISA_GFA256: &str = "GFA256";

@@ -27,11 +27,11 @@ use aluvm::regs::Status;
 use aluvm::{Core, CoreExt, Site, SiteId, Supercore};
 use amplify::num::u256;
 
-use super::{FieldInstr, Instr, ISA_GFA128};
+use super::{FieldInstr, Instr, ISA_GFA256};
 use crate::{fe256, GfaCore, RegE};
 
 impl<Id: SiteId> Instruction<Id> for FieldInstr {
-    const ISA_EXT: &'static [&'static str] = &[ISA_GFA128];
+    const ISA_EXT: &'static [&'static str] = &[ISA_GFA256];
     type Core = GfaCore;
     type Context<'ctx> = ();
 
@@ -191,7 +191,7 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
 }
 
 impl<Id: SiteId> Instruction<Id> for Instr<Id> {
-    const ISA_EXT: &'static [&'static str] = &[ISA_GFA128];
+    const ISA_EXT: &'static [&'static str] = &[ISA_GFA256];
     type Core = GfaCore;
     type Context<'ctx> = ();
 
