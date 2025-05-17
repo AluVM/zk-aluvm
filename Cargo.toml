@@ -1,6 +1,6 @@
 [package]
 name = "zk-aluvm"
-description = "AluVM ISA extension for Galouis fields"
+description = "AluVM ISA extension for Galois fields"
 version = "0.12.0-beta.6"
 authors = ["Dr Maxim Orlovsky <orlovsky@ubideco.org>"]
 repository = "https://github.com/aluvm/zk-aluvm"

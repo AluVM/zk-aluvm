@@ -1,4 +1,4 @@
-// AluVM ISA extension for Galouis fields
+// AluVM ISA extension for Galois fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //
