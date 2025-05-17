@@ -22,6 +22,7 @@
 
 extern crate alloc;
 
+use aluvm::isa::ReservedInstr;
 use aluvm::regs::Status;
 use aluvm::{CoreConfig, CoreExt, Lib, LibId, LibSite, Vm};
 use amplify::default;
@@ -96,9 +97,11 @@ fn putd() {
 
 #[test]
 fn putz() {
-    let vm = stand(zk_aluasm! {
+    let code = zk_aluasm! {
         mov     E4, 0;
-    });
+    };
+    assert_eq!(code, vec![FieldInstr::PutZ { dst: RegE::E4 }.into()]);
+    let vm = stand(code);
     assert_eq!(vm.core.cx.get(RegE::E4), Some(fe256::ZERO));
 
     assert_eq!(vm.core.ck(), Status::Ok);
@@ -517,4 +520,12 @@ fn reset() {
         vm.core.cx.put(reg, None);
         assert_eq!(vm.core.cx.get(reg), None);
     }
+}
+
+#[test]
+fn reserved() {
+    let code = vec![Instr::<LibId>::Reserved(ReservedInstr::default())];
+    let vm = stand_fail(code);
+    assert_eq!(vm.core.co(), Status::Ok);
+    assert_eq!(vm.core.ck(), Status::Fail);
 }

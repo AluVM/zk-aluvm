@@ -25,6 +25,8 @@ serde = { version = "1", optional = true }
 
 [dev-dependencies]
 aluvm = { version = "0.12.0-beta.4", features = ["tests"] }
+serde_test = "1.0.177"
+bincode = "1.3.3"
 
 [features]
 default = []
@@ -51,3 +53,6 @@ features = ["all"]
 
 [lints.rust]
 unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage_nightly)'] }
+
+[patch.crates-io]
+aluvm = { git = "https://github.com/AluVM/aluvm", branch = "revision" }

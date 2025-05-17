@@ -5,14 +5,14 @@ version = 3
 [[package]]
 name = "aluvm"
 version = "0.12.0-beta.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee07e0c19969cc98e341f94f0b413642341605febee7fe7823a2ec7ea71f494c"
+source = "git+https://github.com/AluVM/aluvm?branch=revision#18d670b0f91bf08b0dab6037fae510e5bfdcc075"
 dependencies = [
  "amplify",
  "ascii-armor",
  "baid64",
  "commit_verify",
  "getrandom 0.2.15",
+ "getrandom 0.3.3",
  "paste",
  "serde",
  "strict_encoding",
@@ -115,6 +115,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36915bbaca237c626689b5bd14d02f2ba7a5a359d30a2a08be697392e3718079"
 dependencies = [
  "thiserror",
+]
+
+[[package]]
+name = "bincode"
+version = "1.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -445,6 +454,15 @@ checksum = "b744a7c94f2f3785496af33a0d93857dfc0c521e25c38e993e9c5bb45f09c841"
 dependencies = [
  "serde",
  "serde_derive",
+]
+
+[[package]]
+name = "serde_test"
+version = "1.0.177"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f901ee573cab6b3060453d2d5f0bae4e6d628c23c0a962ff9b5f1d7c8d4f1ed"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -833,10 +851,12 @@ version = "0.12.0-beta.6"
 dependencies = [
  "aluvm",
  "amplify",
+ "bincode",
  "getrandom 0.2.15",
  "getrandom 0.3.3",
  "rand",
  "serde",
+ "serde_test",
  "strict_encoding",
  "strict_types",
  "wasm-bindgen",

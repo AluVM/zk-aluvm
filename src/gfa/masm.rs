@@ -105,18 +105,17 @@ macro_rules! instr {
         }.into()
     };
 
-    // Put zero value to a register
-    (mov $dst:ident, 0) => {
-        $crate::gfa::FieldInstr::PutZ {
-            dst: $crate::RegE::$dst
-        }.into()
-    };
-
     // Put a specific value to a register
     (mov $dst:ident, $val:literal) => {
-        $crate::gfa::FieldInstr::PutD {
-            dst: $crate::RegE::$dst,
-            data: $crate::fe256::from($val as u128)
+        if $val == 0 {
+            $crate::gfa::FieldInstr::PutZ {
+                dst: $crate::RegE::$dst
+            }
+        } else {
+            $crate::gfa::FieldInstr::PutD {
+                dst: $crate::RegE::$dst,
+                data: $crate::fe256::from($val as u128)
+            }
         }.into()
     };
 

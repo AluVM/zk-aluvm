@@ -496,4 +496,14 @@ mod test {
             }
         }
     }
+
+    #[test]
+    fn reserved() {
+        let instr = Instr::<LibId>::Reserved(default!());
+        roundtrip(instr, [0xFF], None);
+
+        assert_eq!(instr.code_byte_len(), 1);
+        assert_eq!(instr.opcode_byte(), 0xFF);
+        assert_eq!(instr.external_ref(), None);
+    }
 }

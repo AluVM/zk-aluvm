@@ -138,6 +138,10 @@ impl FromStr for fe256 {
 #[cfg(test)]
 mod tests {
     #![cfg_attr(coverage_nightly, coverage(off))]
+
+    use amplify::confinement::Confined;
+    use strict_encoding::{StrictDeserialize, StrictSerialize};
+
     use super::*;
 
     #[test]
@@ -161,5 +165,68 @@ mod tests {
         assert_eq!(format!("{}", fe), s);
         assert_eq!(format!("{:#}", fe), s);
         assert_eq!(format!("{:?}", fe), "fe256(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)");
+    }
+
+    #[test]
+    #[should_panic(expected = r#"NoSuffix("0000000000000000000000000000000000000000000000000000000000000000")"#)]
+    fn from_str_no_suffix() {
+        let s = "0000000000000000000000000000000000000000000000000000000000000000";
+        fe256::from_str(s).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "Value(InvalidLength(32, 33))")]
+    fn from_str_invalid_len() {
+        let s = "AA0000000000000000000000000000000000000000000000000000000000000000.fe";
+        fe256::from_str(s).unwrap();
+    }
+
+    #[test]
+    fn serde() {
+        use serde_test::{assert_tokens, Configure, Token};
+
+        let s = "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe";
+        let val = fe256::from_str(s).unwrap();
+        let dat = [
+            // Bincode length prefix
+            0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // The actual value
+            0xA4, 0x89, 0xC5, 0x94, 0x0D, 0xED, 0xEA, 0xDB, 0xEE, 0xFB, 0xAD, 0xCA, 0xFE, 0xFE, 0xED, 0xDE, 0xED, 0xAB,
+            0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x80, 0x47, 0x34, 0x54, 0x95, 0x74, 0x98, 0x57,
+        ];
+        assert_eq!(bincode::serialize(&val).unwrap(), dat);
+        assert_eq!(bincode::serialize(&val).unwrap(), bincode::serialize(&val.0).unwrap());
+        assert_tokens(&val.readable(), &[Token::Str(s)]);
+    }
+
+    #[test]
+    fn from_bytes() {
+        let mut bytes = [
+            0xA4, 0x89, 0xC5, 0x94, 0x0D, 0xED, 0xEA, 0xDB, 0xEE, 0xFB, 0xAD, 0xCA, 0xFE, 0xFE, 0xED, 0xDE, 0xED, 0xAB,
+            0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x80, 0x47, 0x34, 0x54, 0x95, 0x74, 0x98, 0x57,
+        ];
+        // We use little-endian!
+        bytes.reverse();
+        let fe = fe256::from(bytes);
+        assert_eq!(fe.to_string(), "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe");
+    }
+
+    #[test]
+    fn strict_encoding() {
+        #![allow(non_local_definitions)]
+
+        impl StrictSerialize for fe256 {}
+        impl StrictDeserialize for fe256 {}
+
+        let bytes = [
+            0xA4, 0x89, 0xC5, 0x94, 0x0D, 0xED, 0xEA, 0xDB, 0xEE, 0xFB, 0xAD, 0xCA, 0xFE, 0xFE, 0xED, 0xDE, 0xED, 0xAB,
+            0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x80, 0x47, 0x34, 0x54, 0x95, 0x74, 0x98, 0x57,
+        ];
+        let mut rev = bytes;
+        // We use little-endian!
+        rev.reverse();
+        let fe = fe256::from(rev);
+        assert_eq!(fe.to_strict_serialized::<32>().unwrap().as_slice(), rev.as_slice());
+        assert_eq!(fe, fe256::from_strict_serialized::<32>(Confined::from_iter_checked(rev)).unwrap());
+        assert_eq!(fe.to_string(), "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe");
     }
 }
