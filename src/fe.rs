@@ -140,7 +140,7 @@ mod tests {
     #![cfg_attr(coverage_nightly, coverage(off))]
 
     use amplify::confinement::Confined;
-    use strict_encoding::{StrictDeserialize, StrictSerialize};
+    use strict_encoding::{StrictDeserialize, StrictDumb, StrictSerialize};
 
     use super::*;
 
@@ -194,6 +194,7 @@ mod tests {
             0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x80, 0x47, 0x34, 0x54, 0x95, 0x74, 0x98, 0x57,
         ];
         assert_eq!(bincode::serialize(&val).unwrap(), dat);
+        assert_eq!(bincode::deserialize::<fe256>(&dat).unwrap(), val);
         assert_eq!(bincode::serialize(&val).unwrap(), bincode::serialize(&val.0).unwrap());
         assert_tokens(&val.readable(), &[Token::Str(s)]);
     }
@@ -206,13 +207,17 @@ mod tests {
         ];
         // We use little-endian!
         bytes.reverse();
-        let fe = fe256::from(bytes);
-        assert_eq!(fe.to_string(), "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe");
+        let fe1 = fe256::from(bytes);
+        let fe2 = fe256::from(Bytes32::from_byte_array(bytes));
+        assert_eq!(fe1, fe2);
+        assert_eq!(fe1.to_string(), "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe");
     }
 
     #[test]
     fn strict_encoding() {
         #![allow(non_local_definitions)]
+
+        assert_eq!(fe256::strict_dumb(), fe256::ZERO);
 
         impl StrictSerialize for fe256 {}
         impl StrictDeserialize for fe256 {}

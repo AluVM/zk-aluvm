@@ -165,6 +165,10 @@ fn fits() {
         chk     CO;
         chk     CK;
 
+        fits    EA, 96.bits;
+        chk     CO;
+        chk     CK;
+
         fits    EA, 64.bits;
         not     CO;
         chk     CO;
@@ -172,7 +176,21 @@ fn fits() {
         not     CO;
         chk     CK;
 
+        fits    EA, 48.bits;
+        not     CO;
+        chk     CO;
+        mov     CO, CK;
+        not     CO;
+        chk     CK;
+
         fits    EA, 32.bits;
+        not     CO;
+        chk     CO;
+        mov     CO, CK;
+        not     CO;
+        chk     CK;
+
+        fits    EA, 24.bits;
         not     CO;
         chk     CO;
         mov     CO, CK;
