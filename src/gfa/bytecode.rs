@@ -1,4 +1,4 @@
-// AluVM extensions for zero knowledge, STARKs and SNARKs"
+// AluVM ISA extension for Galouis fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //

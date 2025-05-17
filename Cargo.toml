@@ -1,6 +1,6 @@
 [package]
 name = "zk-aluvm"
-description = "AluVM extensions for zero knowledge, STARKs and SNARKs"
+description = "AluVM ISA extension for Galouis fields"
 version = "0.12.0-beta.6"
 authors = ["Dr Maxim Orlovsky <orlovsky@ubideco.org>"]
 repository = "https://github.com/aluvm/zk-aluvm"
