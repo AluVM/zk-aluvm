@@ -35,9 +35,9 @@
 ///     chk     CK          ;
 ///     test    E1          ;
 ///     clr     EA          ;
-///     mov     E2, 0       ;
-///     fits    EA, 8:bits  ;
-///     mov     EB, 20      ;
+///     put     E2, 0       ;
+///     fits    EA, 8.bits  ;
+///     put     EB, 20      ;
 ///     mov     E1, E2      ;
 ///     eq      E1, E2      ;
 ///     neg     EA, EH      ;
@@ -85,7 +85,7 @@ macro_rules! instr {
     };
 
     // Checks whether a value in a register fits the provided number of bits
-    (fits $src:ident, $bits:literal :bits) => {
+    (fits $src:ident, $bits:literal .bits) => {
         $crate::gfa::FieldInstr::Fits {
             src: $crate::RegE::$src,
             bits: $crate::gfa::Bits::from_bit_len($bits)
@@ -106,7 +106,7 @@ macro_rules! instr {
     };
 
     // Put a specific value to a register
-    (mov $dst:ident, $val:literal) => {
+    (put $dst:ident, $val:literal) => {
         if $val == 0 {
             $crate::gfa::FieldInstr::PutZ {
                 dst: $crate::RegE::$dst
@@ -119,7 +119,7 @@ macro_rules! instr {
         }.into()
     };
 
-    (mov $dst:ident, :$ident:ident) => {
+    (put $dst:ident, $ident:ident) => {
         $crate::gfa::FieldInstr::PutD {
             dst: $crate::RegE::$dst,
             data: $crate::fe256::from($ident)

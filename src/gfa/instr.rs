@@ -64,20 +64,20 @@ pub enum FieldInstr {
     /// Puts value into a register, replacing the previous value in it if there was any.
     ///
     /// Does not affect values in the `CO` and `CK` registers.
-    #[display("mov     {dst}, {data}")]
+    #[display("put     {dst}, {data}")]
     PutD { dst: RegE, data: fe256 },
 
     /// Puts zero (`0`) value into a register, replacing the previous value in it if there was any.
     ///
     /// Does not affect values in the `CO` and `CK` registers.
-    #[display("mov     {dst}, 0")]
+    #[display("put     {dst}, 0")]
     PutZ { dst: RegE },
 
     /// Puts `val` value, which is a power of 2, into a register, replacing the previous value in
     /// it if there was any.
     ///
     /// Does not affect values in the `CO` and `CK` registers.
-    #[display("mov     {dst}, {val}")]
+    #[display("put     {dst}, {val}")]
     PutV { dst: RegE, val: ConstVal },
 
     /// Test whether a value in a register fits in the provided number of bits.
@@ -184,28 +184,28 @@ impl ConstVal {
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Display)]
 #[repr(u8)]
 pub enum Bits {
-    #[display("8:bits")]
+    #[display("8.bits")]
     Bits8,
 
-    #[display("16:bits")]
+    #[display("16.bits")]
     Bits16,
 
-    #[display("24:bits")]
+    #[display("24.bits")]
     Bits24,
 
-    #[display("32:bits")]
+    #[display("32.bits")]
     Bits32,
 
-    #[display("48:bits")]
+    #[display("48.bits")]
     Bits48,
 
-    #[display("64:bits")]
+    #[display("64.bits")]
     Bits64,
 
-    #[display("96:bits")]
+    #[display("96.bits")]
     Bits96,
 
-    #[display("128:bits")]
+    #[display("128.bits")]
     Bits128,
 }
 

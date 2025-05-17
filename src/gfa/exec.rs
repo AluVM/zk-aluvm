@@ -497,4 +497,21 @@ mod test {
         assert_eq!(instr.base_complexity(), 768000);
         assert_eq!(instr.complexity(), instr.base_complexity() * 2);
     }
+
+    #[test]
+    fn reserved() {
+        let mut instr = Instr::<LibId>::Reserved(default!());
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), none!());
+        assert_eq!(instr.src_regs(), none!());
+        assert_eq!(instr.dst_regs(), none!());
+        assert_eq!(instr.src_reg_bytes(), 0);
+        assert_eq!(instr.dst_reg_bytes(), 0);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 0);
+        assert_eq!(instr.complexity(), instr.base_complexity());
+    }
 }

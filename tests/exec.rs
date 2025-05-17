@@ -57,7 +57,7 @@ fn stand_check(code: Vec<Instr<LibId>>, expect: bool) -> Vm<Instr<LibId>> {
 #[test]
 fn test() {
     let code = zk_aluasm! {
-        mov     E2, 0;
+        put     E2, 0;
         test    E2;
     };
     let vm = stand(code);
@@ -75,7 +75,7 @@ fn test() {
 #[test]
 fn clr() {
     let code = zk_aluasm! {
-        mov     E3, 0;
+        put     E3, 0;
         clr     E3;
         test    E3;
     };
@@ -88,7 +88,7 @@ fn clr() {
 fn putd() {
     const VAL: u256 = u256::from_inner([73864950, 463656, 3456556, 23456657]);
     let vm = stand(zk_aluasm! {
-        mov     E1, :VAL;
+        put     E1, VAL;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL)));
     assert_eq!(vm.core.ck(), Status::Ok);
@@ -98,7 +98,7 @@ fn putd() {
 #[test]
 fn putz() {
     let code = zk_aluasm! {
-        mov     E4, 0;
+        put     E4, 0;
     };
     assert_eq!(code, vec![FieldInstr::PutZ { dst: RegE::E4 }.into()]);
     let vm = stand(code);
@@ -159,43 +159,43 @@ fn fits() {
     assert!(val2 < u8::MAX.into());
 
     let vm = stand(zk_aluasm! {
-        mov     EA, :VAL1;
+        put     EA, VAL1;
 
-        fits    EA, 128 :bits;
+        fits    EA, 128.bits;
         chk     CO;
         chk     CK;
 
-        fits    EA, 64 :bits;
-        not     CO;
-        chk     CO;
-        mov     CO, CK;
-        not     CO;
-        chk     CK;
-
-        fits    EA, 32 :bits;
+        fits    EA, 64.bits;
         not     CO;
         chk     CO;
         mov     CO, CK;
         not     CO;
         chk     CK;
 
-        fits    EA, 16 :bits;
+        fits    EA, 32.bits;
         not     CO;
         chk     CO;
         mov     CO, CK;
         not     CO;
         chk     CK;
 
-        fits    EA, 8 :bits;
+        fits    EA, 16.bits;
         not     CO;
         chk     CO;
         mov     CO, CK;
         not     CO;
         chk     CK;
 
-        mov     EB, :val2;
+        fits    EA, 8.bits;
+        not     CO;
+        chk     CO;
+        mov     CO, CK;
+        not     CO;
+        chk     CK;
 
-        fits    EB, 8 :bits;
+        put     EB, val2;
+
+        fits    EB, 8.bits;
         chk     CO;
         chk     CK;
     });
@@ -209,7 +209,7 @@ fn fits() {
 fn mov() {
     const VAL: u256 = u256::from_inner([73864950, 463656, 3456556, 23456657]);
     let vm = stand(zk_aluasm! {
-        mov     EC, :VAL;
+        put     EC, VAL;
         mov     ED, EC;
     });
     assert_eq!(vm.core.cx.get(RegE::EC), Some(fe256::from(VAL)));
@@ -219,7 +219,7 @@ fn mov() {
 
     // None
     let vm = stand(zk_aluasm! {
-        mov     EG, :VAL;
+        put     EG, VAL;
         mov     EG, EH;
     });
     assert_eq!(vm.core.cx.get(RegE::EC), None);
@@ -233,8 +233,8 @@ fn eq() {
     // Cmp equals
     const VAL: u256 = u256::from_inner([73864950, 463656, 3456556, 23456657]);
     let vm = stand(zk_aluasm! {
-        mov     EE, :VAL;
-        mov     EF, :VAL;
+        put     EE, VAL;
+        put     EF, VAL;
         eq      EF, EE;
     });
     assert_eq!(vm.core.cx.get(RegE::EE), Some(fe256::from(VAL)));
@@ -244,8 +244,8 @@ fn eq() {
 
     // Cmp non-equals
     let vm = stand(zk_aluasm! {
-        mov     EE, :VAL;
-        mov     EF, :VAL;
+        put     EE, VAL;
+        put     EF, VAL;
         neg     EF, EF;
         eq      EF, EE;
     });
@@ -256,7 +256,7 @@ fn eq() {
 
     // Cmp with None
     let vm = stand(zk_aluasm! {
-        mov     EE, :VAL;
+        put     EE, VAL;
         eq      EF, EE;
     });
     assert_eq!(vm.core.cx.get(RegE::EE), Some(fe256::from(VAL)));
@@ -279,7 +279,7 @@ fn neg() {
     const VAL: u256 = u256::from_inner([73864950, 463656, 3456556, 23456657]);
     // Negate a value, same register
     let vm = stand(zk_aluasm! {
-        mov     EF, :VAL;
+        put     EF, VAL;
         neg     EF, EF;
     });
     assert_eq!(vm.core.cx.get(RegE::EF), Some(fe256::from(vm.core.cx.fq() - VAL)));
@@ -288,7 +288,7 @@ fn neg() {
 
     // Negate a value, different registers
     let vm = stand(zk_aluasm! {
-        mov     EF, :VAL;
+        put     EF, VAL;
         neg     E1, EF;
     });
     assert_eq!(vm.core.cx.get(RegE::EF), Some(fe256::from(VAL)));
@@ -312,8 +312,8 @@ fn add() {
 
     // Increment
     let vm = stand(zk_aluasm! {
-        mov     E1, :VAL;
-        mov     E2, :ONE;
+        put     E1, VAL;
+        put     E2, ONE;
         add     E1, E2;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL + ONE)));
@@ -323,8 +323,8 @@ fn add() {
 
     // Double
     let vm = stand(zk_aluasm! {
-        mov     E1, :VAL;
-        mov     E2, :VAL;
+        put     E1, VAL;
+        put     E2, VAL;
         add     E1, E2;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL + VAL)));
@@ -335,8 +335,8 @@ fn add() {
     // Overflow
     let max: u256 = vm.core.cx.fq() - u256::ONE;
     let vm = stand(zk_aluasm! {
-        mov     E1, :VAL;
-        mov     E2, :max;
+        put     E1, VAL;
+        put     E2, max;
         add     E1, E2;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL - ONE)));
@@ -346,7 +346,7 @@ fn add() {
 
     // none
     let vm = stand_fail(zk_aluasm! {
-        mov     E1, :VAL;
+        put     E1, VAL;
         add     E1, E2;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL)));
@@ -355,7 +355,7 @@ fn add() {
     assert_eq!(vm.core.co(), Status::Ok);
 
     let vm = stand_fail(zk_aluasm! {
-        mov     E1, :VAL;
+        put     E1, VAL;
         add     E2, E1;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL)));
@@ -379,8 +379,8 @@ fn mul() {
 
     // * 0
     let vm = stand(zk_aluasm! {
-        mov     E1, :VAL;
-        mov     E2, 0;
+        put     E1, VAL;
+        put     E2, 0;
         mul     E1, E2;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(u256::ZERO)));
@@ -390,8 +390,8 @@ fn mul() {
 
     // * 1
     let vm = stand(zk_aluasm! {
-        mov     E1, :VAL;
-        mov     E2, :ONE;
+        put     E1, VAL;
+        put     E2, ONE;
         mul     E1, E2;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL * ONE)));
@@ -401,8 +401,8 @@ fn mul() {
 
     // * 2
     let vm = stand(zk_aluasm! {
-        mov     E1, :VAL;
-        mov     E2, 2;
+        put     E1, VAL;
+        put     E2, 2;
         mul     E1, E2;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL * u256::from(2u8))));
@@ -412,8 +412,8 @@ fn mul() {
 
     // Double no overflow
     let vm = stand(zk_aluasm! {
-        mov     E1, 2;
-        mov     E2, 4;
+        put     E1, 2;
+        put     E2, 4;
         mul     E1, E2;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(u256::from(8u8))));
@@ -423,8 +423,8 @@ fn mul() {
 
     // Double with overflow
     let vm = stand(zk_aluasm! {
-        mov     E1, :VAL;
-        mov     E2, :VAL;
+        put     E1, VAL;
+        put     E2, VAL;
         mul     E1, E2;
     });
     assert_eq!(
@@ -443,8 +443,8 @@ fn mul() {
     // Overflow
     let max: u256 = vm.core.cx.fq() - u256::ONE;
     let vm = stand(zk_aluasm! {
-        mov     E1, :VAL;
-        mov     E2, :max;
+        put     E1, VAL;
+        put     E2, max;
         mul     E1, E2;
     });
     assert_eq!(
@@ -462,7 +462,7 @@ fn mul() {
 
     // none
     let vm = stand_fail(zk_aluasm! {
-        mov     E1, :VAL;
+        put     E1, VAL;
         mul     E1, E2;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL)));
@@ -471,7 +471,7 @@ fn mul() {
     assert_eq!(vm.core.co(), Status::Ok);
 
     let vm = stand_fail(zk_aluasm! {
-        mov     E1, :VAL;
+        put     E1, VAL;
         mul     E2, E1;
     });
     assert_eq!(vm.core.cx.get(RegE::E1), Some(fe256::from(VAL)));
@@ -492,22 +492,22 @@ fn mul() {
 fn reset() {
     // Increment
     let mut vm = stand(zk_aluasm! {
-        mov     E1, 1;
-        mov     E2, 2;
-        mov     E3, 3;
-        mov     E4, 4;
-        mov     E5, 5;
-        mov     E6, 6;
-        mov     E7, 7;
-        mov     E8, 8;
-        mov     EA, 9;
-        mov     EB, 10;
-        mov     EC, 11;
-        mov     ED, 12;
-        mov     EE, 13;
-        mov     EF, 14;
-        mov     EG, 15;
-        mov     EH, 16;
+        put     E1, 1;
+        put     E2, 2;
+        put     E3, 3;
+        put     E4, 4;
+        put     E5, 5;
+        put     E6, 6;
+        put     E7, 7;
+        put     E8, 8;
+        put     EA, 9;
+        put     EB, 10;
+        put     EC, 11;
+        put     ED, 12;
+        put     EE, 13;
+        put     EF, 14;
+        put     EG, 15;
+        put     EH, 16;
     });
     for (no, reg) in RegE::ALL.iter().enumerate() {
         assert_eq!(vm.core.cx.get(*reg), Some(fe256::from(no as u64 + 1)));
