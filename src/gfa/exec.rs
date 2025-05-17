@@ -22,7 +22,7 @@
 
 use alloc::collections::BTreeSet;
 
-use aluvm::isa::{ExecStep, Instruction};
+use aluvm::isa::{ExecStep, GotoTarget, Instruction};
 use aluvm::regs::Status;
 use aluvm::{Core, CoreExt, Site, SiteId, Supercore};
 use amplify::num::u256;
@@ -37,7 +37,7 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
 
     fn is_goto_target(&self) -> bool { false }
 
-    fn local_goto_pos(&mut self) -> Option<&mut u16> { None }
+    fn local_goto_pos(&mut self) -> GotoTarget { GotoTarget::None }
 
     fn remote_goto_pos(&mut self) -> Option<&mut Site<Id>> { None }
 
@@ -203,7 +203,7 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
         }
     }
 
-    fn local_goto_pos(&mut self) -> Option<&mut u16> {
+    fn local_goto_pos(&mut self) -> GotoTarget {
         match self {
             Instr::Ctrl(ctrl) => ctrl.local_goto_pos(),
             Instr::Gfa(instr) => Instruction::<Id>::local_goto_pos(instr),
@@ -255,7 +255,7 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
         match self {
             Instr::Ctrl(instr) => instr.complexity(),
             Instr::Gfa(instr) => Instruction::<Id>::complexity(instr),
-            Instr::Reserved(_) => none!(),
+            Instr::Reserved(instr) => Instruction::<Id>::complexity(instr),
         }
     }
 
@@ -291,7 +291,7 @@ mod test {
     fn test() {
         let mut instr = Instr::<LibId>::Gfa(FieldInstr::Test { src: RegE::E1 });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), bset![RegE::E1]);
@@ -308,7 +308,7 @@ mod test {
     fn clr() {
         let mut instr = Instr::<LibId>::Gfa(FieldInstr::Clr { dst: RegE::E1 });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), none!());
@@ -328,7 +328,7 @@ mod test {
             data: fe256::ZERO,
         });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), none!());
@@ -345,7 +345,7 @@ mod test {
     fn putz() {
         let mut instr = Instr::<LibId>::Gfa(FieldInstr::PutZ { dst: RegE::E1 });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), none!());
@@ -365,7 +365,7 @@ mod test {
             val: ConstVal::ValFeMAX,
         });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), none!());
@@ -385,7 +385,7 @@ mod test {
             bits: Bits::Bits8,
         });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), bset![RegE::E1]);
@@ -405,7 +405,7 @@ mod test {
             src: RegE::EA,
         });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), bset![RegE::EA]);
@@ -425,7 +425,7 @@ mod test {
             src2: RegE::EA,
         });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), bset![RegE::E1, RegE::EA]);
@@ -445,7 +445,7 @@ mod test {
             src: RegE::EA,
         });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), bset![RegE::EA]);
@@ -465,7 +465,7 @@ mod test {
             src: RegE::EA,
         });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), bset![RegE::EA, RegE::E1]);
@@ -485,7 +485,7 @@ mod test {
             src: RegE::EA,
         });
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
         assert_eq!(instr.src_regs(), bset![RegE::EA, RegE::E1]);
@@ -502,7 +502,7 @@ mod test {
     fn reserved() {
         let mut instr = Instr::<LibId>::Reserved(default!());
         assert_eq!(instr.is_goto_target(), false);
-        assert_eq!(instr.local_goto_pos(), None);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
         assert_eq!(instr.remote_goto_pos(), None);
         assert_eq!(instr.regs(), none!());
         assert_eq!(instr.src_regs(), none!());
@@ -512,6 +512,6 @@ mod test {
         assert_eq!(instr.op_data_bytes(), 0);
         assert_eq!(instr.ext_data_bytes(), 0);
         assert_eq!(instr.base_complexity(), 0);
-        assert_eq!(instr.complexity(), instr.base_complexity());
+        assert_eq!(instr.complexity(), u64::MAX);
     }
 }
