@@ -32,7 +32,7 @@ use crate::LIB_NAME_FINITE_FIELD;
 
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Display, From)]
-#[display("{0:X}.fe")]
+#[display("{0:X}.fe", alt = "{0:064X}.fe")]
 #[derive(StrictDumb, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_FINITE_FIELD)]
 pub struct fe256(
@@ -130,7 +130,36 @@ impl FromStr for fe256 {
             return Err(hex::Error::InvalidLength(32, bytes.len()).into());
         }
         buf[..bytes.len()].copy_from_slice(bytes.as_slice());
-        let val = u256::from_le_bytes(buf);
+        let val = u256::from_be_bytes(buf);
         Ok(Self(val))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![cfg_attr(coverage_nightly, coverage(off))]
+    use super::*;
+
+    #[test]
+    fn display_from_str() {
+        let s = "0000000000000000000000000000000000000000000000000000000000000000.fe";
+        let fe = fe256::from_str(s).unwrap();
+        assert_eq!(fe, fe256::ZERO);
+        assert_eq!(format!("{}", fe), "0.fe");
+        assert_eq!(format!("{:#}", fe), s);
+        assert_eq!(format!("{:?}", fe), "fe256(0x0000000000000000000000000000000000000000000000000000000000000000)");
+
+        let s = "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe";
+        let fe = fe256::from_str(s).unwrap();
+        assert_eq!(format!("{}", fe), s);
+        assert_eq!(format!("{:#}", fe), s);
+        assert_eq!(format!("{:?}", fe), "fe256(0xa489c5940dedeadbeefbadcafefeeddeedabcdef012345678047345495749857)");
+
+        let s = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF.fe";
+        let fe = fe256::from_str(s).unwrap();
+        assert_eq!(fe, fe256::from(u256::MAX));
+        assert_eq!(format!("{}", fe), s);
+        assert_eq!(format!("{:#}", fe), s);
+        assert_eq!(format!("{:?}", fe), "fe256(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)");
     }
 }

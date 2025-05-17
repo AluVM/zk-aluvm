@@ -138,7 +138,7 @@ impl Register for RegE {
     type Value = fe256;
 
     #[inline]
-    fn bytes(self) -> u16 { 16 }
+    fn bytes(self) -> u16 { 32 }
 }
 
 impl From<u4> for RegE {

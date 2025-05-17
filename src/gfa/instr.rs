@@ -91,8 +91,9 @@ pub enum FieldInstr {
     Fits { src: RegE, bits: Bits },
 
     /// Moves (copies) value from `src` to `dst` register, overwriting the previous value in `dst`.
-    /// If `src` has no value (i.e., set to `None`), sets `dst` to `None`. The state of the `src`
-    /// register remains unaffected.
+    /// If `src` has no value (i.e., set to `None`), sets `dst` to `None`.
+    ///
+    /// Leaves the state of the `src` register unaffected.
     ///
     /// Does not affect values in the `CO` and `CK` registers.
     #[display("mov     {dst}, {src}")]
