@@ -1,4 +1,4 @@
-// AluVM extensions for zero knowledge, STARKs and SNARKs"
+// AluVM ISA extension for Galois fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -26,16 +26,17 @@ use amplify::confinement::TinyBlob;
 use amplify::hex::FromHex;
 use amplify::num::u256;
 use amplify::{hex, Bytes32, Wrapper};
-use strict_encoding::{
-    DecodeError, ReadTuple, StrictDecode, StrictProduct, StrictTuple, StrictType, TypeName, TypedRead,
-};
+use strict_encoding::{StrictDecode, StrictProduct, StrictTuple, StrictType, TypeName};
 
 use crate::LIB_NAME_FINITE_FIELD;
 
+/// Element of a Galois finite field.
+///
+/// Maximum size is 256 bits.
 #[allow(non_camel_case_types)]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Display, From)]
-#[display("{0:X}.fe")]
-#[derive(StrictDumb, StrictEncode)]
+#[display("{0:X}.fe", alt = "{0:064X}.fe")]
+#[derive(StrictDumb, StrictEncode, StrictDecode)]
 #[strict_type(lib = LIB_NAME_FINITE_FIELD)]
 pub struct fe256(
     #[from(u8)]
@@ -47,11 +48,10 @@ pub struct fe256(
 );
 
 impl fe256 {
+    /// Zero element of the field.
     pub const ZERO: Self = Self(u256::ZERO);
 
-    #[must_use]
-    fn test_value(val: u256) -> bool { val.into_inner()[3] & 0xF800_0000_0000_0000 == 0 }
-
+    /// Construct a field element from a 256-bit unsigned integer value.
     pub const fn to_u256(&self) -> u256 { self.0 }
 }
 
@@ -67,17 +67,7 @@ impl From<[u8; 32]> for fe256 {
 }
 
 impl From<u256> for fe256 {
-    fn from(val: u256) -> Self {
-        // We make sure we are well below any commonly used field order
-        assert!(
-            Self::test_value(val),
-            "the provided value for 256-bit field element is in a risk zone above order of some commonly used 256-bit \
-             finite fields. The probability of this event for randomly-generated values (including the ones coming \
-             from hashes) is astronomically low, thus, an untrusted input is used in an unfiltered way. Adjust your \
-             code and do not use externally-provided values without checking them first."
-        );
-        Self(val)
-    }
+    fn from(val: u256) -> Self { Self(val) }
 }
 
 impl StrictType for fe256 {
@@ -87,20 +77,6 @@ impl StrictType for fe256 {
 impl StrictProduct for fe256 {}
 impl StrictTuple for fe256 {
     const FIELD_COUNT: u8 = 1;
-}
-impl StrictDecode for fe256 {
-    fn strict_decode(reader: &mut impl TypedRead) -> Result<Self, DecodeError> {
-        reader.read_tuple(|r| {
-            let val = r.read_field::<u256>()?;
-            if !Self::test_value(val) {
-                return Err(DecodeError::DataIntegrityError(format!(
-                    "the provided value {val:#X} for a field element is above the order of some of the finite fields \
-                     and is disallowed"
-                )));
-            }
-            Ok(Self(val))
-        })
-    }
 }
 
 #[cfg(feature = "serde")]
@@ -129,31 +105,23 @@ mod _serde {
                 Self::from_str(&s).map_err(|e| D::Error::invalid_value(Unexpected::Str(&s), &e.to_string().as_str()))
             } else {
                 let val = u256::deserialize(deserializer)?;
-                if !Self::test_value(val) {
-                    return Err(D::Error::invalid_value(
-                        Unexpected::Bytes(&val.to_le_bytes()),
-                        &"the value for a field element is above the order of some of the finite fields and is \
-                          disallowed",
-                    ));
-                }
                 Ok(Self(val))
             }
         }
     }
 }
 
+/// Errors parsing field elements.
 #[derive(Clone, PartialEq, Eq, Debug, Display, Error, From)]
-#[display(doc_comments)]
 pub enum ParseFeError {
-    /// field element `{0}` must have a `.fe` suffix.
+    /// Missed `.fe` suffix.
+    #[display("field element `{0}` must have a `.fe` suffix.")]
     NoSuffix(String),
 
+    /// Invalid hex value.
     #[from]
     #[display(inner)]
     Value(hex::Error),
-
-    /// value {0:#x} overflows safe range for field element values.
-    Overflow(u256),
 }
 
 impl FromStr for fe256 {
@@ -169,10 +137,108 @@ impl FromStr for fe256 {
             return Err(hex::Error::InvalidLength(32, bytes.len()).into());
         }
         buf[..bytes.len()].copy_from_slice(bytes.as_slice());
-        let val = u256::from_le_bytes(buf);
-        if !Self::test_value(val) {
-            return Err(ParseFeError::Overflow(val));
-        }
+        let val = u256::from_be_bytes(buf);
         Ok(Self(val))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![cfg_attr(coverage_nightly, coverage(off))]
+
+    use amplify::confinement::Confined;
+    use strict_encoding::{StrictDeserialize, StrictDumb, StrictSerialize};
+
+    use super::*;
+
+    #[test]
+    fn display_from_str() {
+        let s = "0000000000000000000000000000000000000000000000000000000000000000.fe";
+        let fe = fe256::from_str(s).unwrap();
+        assert_eq!(fe, fe256::ZERO);
+        assert_eq!(format!("{}", fe), "0.fe");
+        assert_eq!(format!("{:#}", fe), s);
+        assert_eq!(format!("{:?}", fe), "fe256(0x0000000000000000000000000000000000000000000000000000000000000000)");
+
+        let s = "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe";
+        let fe = fe256::from_str(s).unwrap();
+        assert_eq!(format!("{}", fe), s);
+        assert_eq!(format!("{:#}", fe), s);
+        assert_eq!(format!("{:?}", fe), "fe256(0xa489c5940dedeadbeefbadcafefeeddeedabcdef012345678047345495749857)");
+
+        let s = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF.fe";
+        let fe = fe256::from_str(s).unwrap();
+        assert_eq!(fe, fe256::from(u256::MAX));
+        assert_eq!(format!("{}", fe), s);
+        assert_eq!(format!("{:#}", fe), s);
+        assert_eq!(format!("{:?}", fe), "fe256(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)");
+    }
+
+    #[test]
+    #[should_panic(expected = r#"NoSuffix("0000000000000000000000000000000000000000000000000000000000000000")"#)]
+    fn from_str_no_suffix() {
+        let s = "0000000000000000000000000000000000000000000000000000000000000000";
+        fe256::from_str(s).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "Value(InvalidLength(32, 33))")]
+    fn from_str_invalid_len() {
+        let s = "AA0000000000000000000000000000000000000000000000000000000000000000.fe";
+        fe256::from_str(s).unwrap();
+    }
+
+    #[test]
+    fn serde() {
+        use serde_test::{assert_tokens, Configure, Token};
+
+        let s = "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe";
+        let val = fe256::from_str(s).unwrap();
+        let dat = [
+            // Bincode length prefix
+            0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // The actual value
+            0xA4, 0x89, 0xC5, 0x94, 0x0D, 0xED, 0xEA, 0xDB, 0xEE, 0xFB, 0xAD, 0xCA, 0xFE, 0xFE, 0xED, 0xDE, 0xED, 0xAB,
+            0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x80, 0x47, 0x34, 0x54, 0x95, 0x74, 0x98, 0x57,
+        ];
+        assert_eq!(bincode::serialize(&val).unwrap(), dat);
+        assert_eq!(bincode::deserialize::<fe256>(&dat).unwrap(), val);
+        assert_eq!(bincode::serialize(&val).unwrap(), bincode::serialize(&val.0).unwrap());
+        assert_tokens(&val.readable(), &[Token::Str(s)]);
+    }
+
+    #[test]
+    fn from_bytes() {
+        let mut bytes = [
+            0xA4, 0x89, 0xC5, 0x94, 0x0D, 0xED, 0xEA, 0xDB, 0xEE, 0xFB, 0xAD, 0xCA, 0xFE, 0xFE, 0xED, 0xDE, 0xED, 0xAB,
+            0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x80, 0x47, 0x34, 0x54, 0x95, 0x74, 0x98, 0x57,
+        ];
+        // We use little-endian!
+        bytes.reverse();
+        let fe1 = fe256::from(bytes);
+        let fe2 = fe256::from(Bytes32::from_byte_array(bytes));
+        assert_eq!(fe1, fe2);
+        assert_eq!(fe1.to_string(), "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe");
+    }
+
+    #[test]
+    fn strict_encoding() {
+        #![allow(non_local_definitions)]
+
+        assert_eq!(fe256::strict_dumb(), fe256::ZERO);
+
+        impl StrictSerialize for fe256 {}
+        impl StrictDeserialize for fe256 {}
+
+        let bytes = [
+            0xA4, 0x89, 0xC5, 0x94, 0x0D, 0xED, 0xEA, 0xDB, 0xEE, 0xFB, 0xAD, 0xCA, 0xFE, 0xFE, 0xED, 0xDE, 0xED, 0xAB,
+            0xCD, 0xEF, 0x01, 0x23, 0x45, 0x67, 0x80, 0x47, 0x34, 0x54, 0x95, 0x74, 0x98, 0x57,
+        ];
+        let mut rev = bytes;
+        // We use little-endian!
+        rev.reverse();
+        let fe = fe256::from(rev);
+        assert_eq!(fe.to_strict_serialized::<32>().unwrap().as_slice(), rev.as_slice());
+        assert_eq!(fe, fe256::from_strict_serialized::<32>(Confined::from_iter_checked(rev)).unwrap());
+        assert_eq!(fe.to_string(), "A489C5940DEDEADBEEFBADCAFEFEEDDEEDABCDEF012345678047345495749857.fe");
     }
 }

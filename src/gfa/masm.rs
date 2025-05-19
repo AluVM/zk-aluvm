@@ -1,4 +1,4 @@
-// AluVM extensions for zero knowledge, STARKs and SNARKs"
+// AluVM ISA extension for Galois fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -25,6 +25,7 @@
 /// # Example
 ///
 /// ```
+/// ##![cfg_attr(coverage_nightly, feature(coverage_attribute), coverage(off))]
 /// use aluvm::regs::Status;
 /// use aluvm::{Lib, LibId, LibSite, Vm};
 /// use zkaluvm::gfa::Instr;
@@ -35,9 +36,9 @@
 ///     chk     CK          ;
 ///     test    E1          ;
 ///     clr     EA          ;
-///     mov     E2, 0       ;
-///     fits    EA, 8:bits  ;
-///     mov     EB, 20      ;
+///     put     E2, 0       ;
+///     fits    EA, 8.bits  ;
+///     put     EB, 20      ;
 ///     mov     E1, E2      ;
 ///     eq      E1, E2      ;
 ///     neg     EA, EH      ;
@@ -85,7 +86,7 @@ macro_rules! instr {
     };
 
     // Checks whether a value in a register fits the provided number of bits
-    (fits $src:ident, $bits:literal :bits) => {
+    (fits $src:ident, $bits:literal .bits) => {
         $crate::gfa::FieldInstr::Fits {
             src: $crate::RegE::$src,
             bits: $crate::gfa::Bits::from_bit_len($bits)
@@ -105,22 +106,21 @@ macro_rules! instr {
         }.into()
     };
 
-    // Put zero value to a register
-    (mov $dst:ident, 0) => {
-        $crate::gfa::FieldInstr::PutZ {
-            dst: $crate::RegE::$dst
-        }.into()
-    };
-
     // Put a specific value to a register
-    (mov $dst:ident, $val:literal) => {
-        $crate::gfa::FieldInstr::PutD {
-            dst: $crate::RegE::$dst,
-            data: $crate::fe256::from($val as u128)
+    (put $dst:ident, $val:literal) => {
+        if $val == 0 {
+            $crate::gfa::FieldInstr::PutZ {
+                dst: $crate::RegE::$dst
+            }
+        } else {
+            $crate::gfa::FieldInstr::PutD {
+                dst: $crate::RegE::$dst,
+                data: $crate::fe256::from($val as u128)
+            }
         }.into()
     };
 
-    (mov $dst:ident, :$ident:ident) => {
+    (put $dst:ident, $ident:ident) => {
         $crate::gfa::FieldInstr::PutD {
             dst: $crate::RegE::$dst,
             data: $crate::fe256::from($ident)

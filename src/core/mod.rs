@@ -1,4 +1,4 @@
-// AluVM extensions for zero knowledge, STARKs and SNARKs"
+// AluVM ISA extension for Galois fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -20,6 +20,7 @@
 // or implied. See the License for the specific language governing permissions and limitations under
 // the License.
 
+#[allow(clippy::module_inception)]
 mod core;
 mod microcode;
 

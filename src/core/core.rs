@@ -1,4 +1,4 @@
-// AluVM extensions for zero knowledge, STARKs and SNARKs"
+// AluVM ISA extension for Galois fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -27,9 +27,12 @@ use amplify::num::{u256, u4};
 
 use crate::fe256;
 
+/// Field order for the group used in the Curve25519 elliptic curve construction.
 pub const FIELD_ORDER_25519: u256 =
     u256::from_inner([0xFFFF_FFFF_FFFF_FFEC, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, 0x8FFF_FFFF_FFFF_FFFF]);
+/// Field order for the group used in the "Stark" elliptic curve construction.
 pub const FIELD_ORDER_STARK: u256 = u256::from_inner([1, 0, 17, 0x0800_0000_0000_0000]);
+/// Field order for the group used in SECP256K1 elliptic curve construction.
 pub const FIELD_ORDER_SECP: u256 =
     u256::from_inner([0xFFFF_FFFE_FFFF_FC2E, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF, 0xFFFF_FFFF_FFFF_FFFF]);
 
@@ -41,14 +44,18 @@ impl Default for GfaConfig {
     }
 }
 
+/// An extension of AluVM core for the GFA256 ISA.
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct GfaCore {
+    /// Used field order.
     pub(super) fq: u256,
     pub(super) e: [Option<fe256>; 16],
 }
 
+/// Configuration for initializing the zk-AluVM core (GFA256 ISA extension).
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct GfaConfig {
+    /// The order of the group for the core.
     pub field_order: u256,
 }
 
@@ -90,6 +97,7 @@ impl Supercore<NoExt> for GfaCore {
     fn merge_subcore(&mut self, _subcore: NoExt) {}
 }
 
+#[cfg_attr(coverage_nightly, coverage(off))]
 impl Debug for GfaCore {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let (sect, reg, val, reset) =
@@ -110,6 +118,19 @@ impl Debug for GfaCore {
     }
 }
 
+/// Registers storing field elements.
+///
+/// # zk-AluVM ABI standard
+///
+/// Totally, there are 16 registers, divided in two groups.
+///
+/// The first group, consisting of 8 registers, from `E1` to `E8` are used for storing local
+/// variables. If a routine calls another routine or external library, it must assume that the
+/// values in these registers may not be preserved.
+///
+/// The second group, consisting of another 8 registers, from `EA` to `EG`, is used for passing
+/// arguments and reading the retuned data from the routine or external procedure calls.
+#[allow(missing_docs)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Display)]
 #[display(uppercase)]
 #[repr(u8)]
@@ -136,7 +157,7 @@ impl Register for RegE {
     type Value = fe256;
 
     #[inline]
-    fn bytes(self) -> u16 { 16 }
+    fn bytes(self) -> u16 { 32 }
 }
 
 impl From<u4> for RegE {
@@ -164,6 +185,7 @@ impl From<u4> for RegE {
 }
 
 impl RegE {
+    /// Enumeration of all available registers.
     pub const ALL: [Self; 16] = [
         RegE::E1,
         RegE::E2,
@@ -183,6 +205,7 @@ impl RegE {
         RegE::EH,
     ];
 
+    /// Get a 4-bit representation of the register index.
     #[inline]
     pub const fn to_u4(self) -> u4 { u4::with(self as u8) }
 }

@@ -1,4 +1,4 @@
-// AluVM extensions for zero knowledge, STARKs and SNARKs"
+// AluVM ISA extension for Galois fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -30,4 +30,5 @@ mod masm;
 
 pub use instr::{Bits, ConstVal, FieldInstr, Instr};
 
-pub const ISA_GFA128: &str = "GFA128";
+/// AluVM ISA extension name.
+pub const ISA_GFA256: &str = "GFA256";

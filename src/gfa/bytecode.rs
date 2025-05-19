@@ -1,4 +1,4 @@
-// AluVM extensions for zero knowledge, STARKs and SNARKs"
+// AluVM ISA extension for Galois fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -29,15 +29,26 @@ use amplify::num::{u2, u256, u3, u4};
 use super::{Bits, ConstVal, FieldInstr, Instr};
 use crate::{fe256, RegE};
 
+#[allow(missing_docs, clippy::identity_op)]
 impl FieldInstr {
-    const START: u8 = 64;
-    const END: u8 = Self::START + Self::MUL;
-    const SET: u8 = 0;
-    const MOV: u8 = 1;
-    const EQ: u8 = 2;
-    const NEG: u8 = 3;
-    const ADD: u8 = 4;
-    const MUL: u8 = 5;
+    /// The initial value of the instruction op codes.
+    pub const START: u8 = 64;
+    /// The ending value of the instruction op codes.
+    pub const END: u8 = Self::MUL;
+
+    pub const SET: u8 = Self::START + 0;
+    pub const TEST: u8 = Self::START + 0;
+    pub const CLR: u8 = Self::START + 0;
+    pub const PUTD: u8 = Self::START + 0;
+    pub const PUTZ: u8 = Self::START + 0;
+    pub const PUTV: u8 = Self::START + 0;
+    pub const FITS: u8 = Self::START + 0;
+
+    pub const MOV: u8 = Self::START + 1;
+    pub const EQ: u8 = Self::START + 2;
+    pub const NEG: u8 = Self::START + 3;
+    pub const ADD: u8 = Self::START + 4;
+    pub const MUL: u8 = Self::START + 5;
 }
 
 const SUB_TEST: u8 = 0b_0000;
@@ -53,20 +64,19 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
     fn op_range() -> RangeInclusive<u8> { Self::START..=Self::END }
 
     fn opcode_byte(&self) -> u8 {
-        Self::START
-            + match *self {
-                FieldInstr::Test { .. }
-                | FieldInstr::Clr { .. }
-                | FieldInstr::PutD { .. }
-                | FieldInstr::PutZ { .. }
-                | FieldInstr::PutV { .. }
-                | FieldInstr::Fits { .. } => Self::SET,
-                FieldInstr::Mov { .. } => Self::MOV,
-                FieldInstr::Eq { .. } => Self::EQ,
-                FieldInstr::Neg { .. } => Self::NEG,
-                FieldInstr::Add { .. } => Self::ADD,
-                FieldInstr::Mul { .. } => Self::MUL,
-            }
+        match *self {
+            FieldInstr::Test { .. }
+            | FieldInstr::Clr { .. }
+            | FieldInstr::PutD { .. }
+            | FieldInstr::PutZ { .. }
+            | FieldInstr::PutV { .. }
+            | FieldInstr::Fits { .. } => Self::SET,
+            FieldInstr::Mov { .. } => Self::MOV,
+            FieldInstr::Eq { .. } => Self::EQ,
+            FieldInstr::Neg { .. } => Self::NEG,
+            FieldInstr::Add { .. } => Self::ADD,
+            FieldInstr::Mul { .. } => Self::MUL,
+        }
     }
 
     fn code_byte_len(&self) -> u16 {
@@ -147,9 +157,9 @@ impl<Id: SiteId> Bytecode<Id> for FieldInstr {
         Self: Sized,
         R: BytecodeRead<Id>,
     {
-        Ok(match opcode - Self::START {
+        Ok(match opcode {
             Self::SET => {
-                let sub = u4::from(reader.read_4bits()?).to_u8();
+                let sub = reader.read_4bits()?.to_u8();
                 match sub {
                     SUB_TEST => {
                         let src = RegE::from(reader.read_4bits()?);
@@ -266,6 +276,7 @@ impl<Id: SiteId> Bytecode<Id> for Instr<Id> {
 
 #[cfg(test)]
 mod test {
+    #![cfg_attr(coverage_nightly, coverage(off))]
     use core::str::FromStr;
 
     use aluvm::{LibId, LibsSeg, Marshaller};
@@ -285,7 +296,7 @@ mod test {
         let (code, data) = marshaller.finish();
         assert_eq!(code.as_slice(), bytecode.as_ref());
         if let Some(d) = dataseg {
-            assert_eq!(data.as_slice(), d.as_ref());
+            assert_eq!(data.as_slice(), d);
         } else {
             assert!(data.is_empty());
         }
@@ -298,22 +309,30 @@ mod test {
     #[test]
     fn test() {
         for reg in RegE::ALL {
-            let instr = FieldInstr::Test { src: reg };
-            let opcode = FieldInstr::START + FieldInstr::SET;
+            let instr = Instr::<LibId>::Gfa(FieldInstr::Test { src: reg });
+            let opcode = FieldInstr::SET;
             let sub = reg.to_u4().to_u8() << 4 | SUB_TEST;
 
             roundtrip(instr, [opcode, sub], None);
+
+            assert_eq!(instr.code_byte_len(), 2);
+            assert_eq!(instr.opcode_byte(), FieldInstr::TEST);
+            assert_eq!(instr.external_ref(), None);
         }
     }
 
     #[test]
     fn clr() {
         for reg in RegE::ALL {
-            let instr = FieldInstr::Clr { dst: reg };
-            let opcode = FieldInstr::START + FieldInstr::SET;
+            let instr = Instr::<LibId>::Gfa(FieldInstr::Clr { dst: reg });
+            let opcode = FieldInstr::SET;
             let sub = reg.to_u4().to_u8() << 4 | SUB_CLR;
 
             roundtrip(instr, [opcode, sub], None);
+
+            assert_eq!(instr.code_byte_len(), 2);
+            assert_eq!(instr.opcode_byte(), FieldInstr::CLR);
+            assert_eq!(instr.external_ref(), None);
         }
     }
 
@@ -323,25 +342,33 @@ mod test {
             let val = u256::from(0xdeadcafe1badbeef_u64);
             let data = val.to_le_bytes();
 
-            let instr = FieldInstr::PutD {
+            let instr = Instr::<LibId>::Gfa(FieldInstr::PutD {
                 dst: reg,
                 data: fe256::from(val),
-            };
-            let opcode = FieldInstr::START + FieldInstr::SET;
+            });
+            let opcode = FieldInstr::SET;
             let sub = reg.to_u4().to_u8() << 4 | SUB_PUTD;
 
             roundtrip(instr, [opcode, sub, 0, 0], Some(&data[..]));
+
+            assert_eq!(instr.code_byte_len(), 4);
+            assert_eq!(instr.opcode_byte(), FieldInstr::PUTD);
+            assert_eq!(instr.external_ref(), None);
         }
     }
 
     #[test]
     fn putz() {
         for reg in RegE::ALL {
-            let instr = FieldInstr::PutZ { dst: reg };
-            let opcode = FieldInstr::START + FieldInstr::SET;
+            let instr = Instr::<LibId>::Gfa(FieldInstr::PutZ { dst: reg });
+            let opcode = FieldInstr::SET;
             let sub = reg.to_u4().to_u8() << 4 | SUB_PUTZ;
 
             roundtrip(instr, [opcode, sub], None);
+
+            assert_eq!(instr.code_byte_len(), 2);
+            assert_eq!(instr.opcode_byte(), FieldInstr::PUTZ);
+            assert_eq!(instr.external_ref(), None);
         }
     }
 
@@ -350,11 +377,15 @@ mod test {
         for reg in RegE::ALL {
             for val_u8 in 0..4 {
                 let val = ConstVal::from(u2::with(val_u8));
-                let instr = FieldInstr::PutV { dst: reg, val };
-                let opcode = FieldInstr::START + FieldInstr::SET;
+                let instr = Instr::<LibId>::Gfa(FieldInstr::PutV { dst: reg, val });
+                let opcode = FieldInstr::SET;
                 let sub = reg.to_u4().to_u8() << 4 | TEST_PUTV | val.to_u2().to_u8();
 
                 roundtrip(instr, [opcode, sub], None);
+
+                assert_eq!(instr.code_byte_len(), 2);
+                assert_eq!(instr.opcode_byte(), FieldInstr::PUTV);
+                assert_eq!(instr.external_ref(), None);
             }
         }
     }
@@ -364,11 +395,15 @@ mod test {
         for reg in RegE::ALL {
             for bits_u8 in 0..8 {
                 let bits = Bits::from(u3::with(bits_u8));
-                let instr = FieldInstr::Fits { src: reg, bits };
-                let opcode = FieldInstr::START + FieldInstr::SET;
+                let instr = Instr::<LibId>::Gfa(FieldInstr::Fits { src: reg, bits });
+                let opcode = FieldInstr::SET;
                 let sub = reg.to_u4().to_u8() << 4 | TEST_FITS | bits.to_u3().to_u8();
 
                 roundtrip(instr, [opcode, sub], None);
+
+                assert_eq!(instr.code_byte_len(), 2);
+                assert_eq!(instr.opcode_byte(), FieldInstr::FITS);
+                assert_eq!(instr.external_ref(), None);
             }
         }
     }
@@ -377,11 +412,15 @@ mod test {
     fn mov() {
         for reg1 in RegE::ALL {
             for reg2 in RegE::ALL {
-                let instr = FieldInstr::Mov { dst: reg1, src: reg2 };
-                let opcode = FieldInstr::START + FieldInstr::MOV;
+                let instr = Instr::<LibId>::Gfa(FieldInstr::Mov { dst: reg1, src: reg2 });
+                let opcode = FieldInstr::MOV;
                 let regs = reg2.to_u4().to_u8() << 4 | reg1.to_u4().to_u8();
 
                 roundtrip(instr, [opcode, regs], None);
+
+                assert_eq!(instr.code_byte_len(), 2);
+                assert_eq!(instr.opcode_byte(), FieldInstr::MOV);
+                assert_eq!(instr.external_ref(), None);
             }
         }
     }
@@ -390,57 +429,83 @@ mod test {
     fn eq() {
         for reg1 in RegE::ALL {
             for reg2 in RegE::ALL {
-                let instr = FieldInstr::Eq { src1: reg1, src2: reg2 };
-                let opcode = FieldInstr::START + FieldInstr::EQ;
+                let instr = Instr::<LibId>::Gfa(FieldInstr::Eq { src1: reg1, src2: reg2 });
+                let opcode = FieldInstr::EQ;
                 let regs = reg2.to_u4().to_u8() << 4 | reg1.to_u4().to_u8();
 
                 roundtrip(instr, [opcode, regs], None);
+
+                assert_eq!(instr.code_byte_len(), 2);
+                assert_eq!(instr.opcode_byte(), FieldInstr::EQ);
+                assert_eq!(instr.external_ref(), None);
             }
         }
     }
 
     #[test]
-    fn neq_mod() {
+    fn neq() {
         for reg1 in RegE::ALL {
             for reg2 in RegE::ALL {
-                let instr = FieldInstr::Neg { dst: reg1, src: reg2 };
-                let opcode = FieldInstr::START + FieldInstr::NEG;
+                let instr = Instr::<LibId>::Gfa(FieldInstr::Neg { dst: reg1, src: reg2 });
+                let opcode = FieldInstr::NEG;
                 let regs = reg2.to_u4().to_u8() << 4 | reg1.to_u4().to_u8();
 
                 roundtrip(instr, [opcode, regs], None);
+
+                assert_eq!(instr.code_byte_len(), 2);
+                assert_eq!(instr.opcode_byte(), FieldInstr::NEG);
+                assert_eq!(instr.external_ref(), None);
             }
         }
     }
 
     #[test]
-    fn add_mod() {
+    fn add() {
         for reg1 in RegE::ALL {
             for reg2 in RegE::ALL {
-                let instr = FieldInstr::Add {
+                let instr = Instr::<LibId>::Gfa(FieldInstr::Add {
                     dst_src: reg1,
                     src: reg2,
-                };
-                let opcode = FieldInstr::START + FieldInstr::ADD;
+                });
+                let opcode = FieldInstr::ADD;
                 let regs = reg2.to_u4().to_u8() << 4 | reg1.to_u4().to_u8();
 
                 roundtrip(instr, [opcode, regs], None);
+
+                assert_eq!(instr.code_byte_len(), 2);
+                assert_eq!(instr.opcode_byte(), FieldInstr::ADD);
+                assert_eq!(instr.external_ref(), None);
             }
         }
     }
 
     #[test]
-    fn mul_mod() {
+    fn mul() {
         for reg1 in RegE::ALL {
             for reg2 in RegE::ALL {
-                let instr = FieldInstr::Mul {
+                let instr = Instr::<LibId>::Gfa(FieldInstr::Mul {
                     dst_src: reg1,
                     src: reg2,
-                };
-                let opcode = FieldInstr::START + FieldInstr::MUL;
+                });
+                let opcode = FieldInstr::MUL;
                 let regs = reg2.to_u4().to_u8() << 4 | reg1.to_u4().to_u8();
 
                 roundtrip(instr, [opcode, regs], None);
+
+                assert_eq!(instr.code_byte_len(), 2);
+                assert_eq!(instr.opcode_byte(), FieldInstr::MUL);
+                assert_eq!(instr.external_ref(), None);
             }
         }
+    }
+
+    #[test]
+    fn reserved() {
+        let instr = Instr::<LibId>::Reserved(default!());
+        roundtrip(instr, [0xFF], None);
+
+        assert_eq!(instr.code_byte_len(), 1);
+        assert_eq!(instr.opcode_byte(), 0xFF);
+        assert_eq!(instr.external_ref(), None);
     }
 }

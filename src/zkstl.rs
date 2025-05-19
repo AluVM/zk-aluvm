@@ -1,4 +1,4 @@
-// AluVM extensions for zero knowledge, STARKs and SNARKs"
+// AluVM ISA extension for Galois fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -29,6 +29,7 @@ use crate::{fe256, LIB_NAME_FINITE_FIELD};
 /// Strict type id for the lib-old providing data types from this crate.
 pub const LIB_ID_FINITE_FIELD: &str = "stl:Nm0yhN4V-rj3RTrE-tXIS14e-JV1OFTx-zPNhRZU-54QW0tg#report-canal-convert";
 
+#[allow(clippy::result_large_err)]
 fn _finite_field_stl() -> Result<TypeLib, CompileError> {
     LibBuilder::with(LIB_NAME_FINITE_FIELD, [strict_types::stl::std_stl().to_dependency_types()])
         .transpile::<fe256>()
@@ -40,6 +41,7 @@ pub fn finite_field_stl() -> TypeLib { _finite_field_stl().expect("invalid stric
 
 #[cfg(test)]
 mod test {
+    #![cfg_attr(coverage_nightly, coverage(off))]
     use super::*;
 
     #[test]

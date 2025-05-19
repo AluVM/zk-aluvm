@@ -1,4 +1,4 @@
-// AluVM extensions for zero knowledge, STARKs and SNARKs"
+// AluVM ISA extension for Galois fields
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -22,21 +22,22 @@
 
 use alloc::collections::BTreeSet;
 
-use aluvm::isa::{ExecStep, Instruction};
+use aluvm::isa::{ExecStep, GotoTarget, Instruction};
 use aluvm::regs::Status;
 use aluvm::{Core, CoreExt, Site, SiteId, Supercore};
+use amplify::num::u256;
 
-use super::{FieldInstr, Instr, ISA_GFA128};
+use super::{FieldInstr, Instr, ISA_GFA256};
 use crate::{fe256, GfaCore, RegE};
 
 impl<Id: SiteId> Instruction<Id> for FieldInstr {
-    const ISA_EXT: &'static [&'static str] = &[ISA_GFA128];
+    const ISA_EXT: &'static [&'static str] = &[ISA_GFA256];
     type Core = GfaCore;
     type Context<'ctx> = ();
 
     fn is_goto_target(&self) -> bool { false }
 
-    fn local_goto_pos(&mut self) -> Option<&mut u16> { None }
+    fn local_goto_pos(&mut self) -> GotoTarget { GotoTarget::None }
 
     fn remote_goto_pos(&mut self) -> Option<&mut Site<Id>> { None }
 
@@ -150,7 +151,9 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
                 Status::Ok
             }
             FieldInstr::PutV { dst, val } => {
-                let val = val.to_fe256().unwrap_or_else(|| core.cx.fq().into());
+                let val = val
+                    .to_fe256()
+                    .unwrap_or_else(|| (core.cx.fq() - u256::ONE).into());
                 core.cx.set(dst, val);
                 Status::Ok
             }
@@ -188,7 +191,7 @@ impl<Id: SiteId> Instruction<Id> for FieldInstr {
 }
 
 impl<Id: SiteId> Instruction<Id> for Instr<Id> {
-    const ISA_EXT: &'static [&'static str] = &[ISA_GFA128];
+    const ISA_EXT: &'static [&'static str] = &[ISA_GFA256];
     type Core = GfaCore;
     type Context<'ctx> = ();
 
@@ -200,7 +203,7 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
         }
     }
 
-    fn local_goto_pos(&mut self) -> Option<&mut u16> {
+    fn local_goto_pos(&mut self) -> GotoTarget {
         match self {
             Instr::Ctrl(ctrl) => ctrl.local_goto_pos(),
             Instr::Gfa(instr) => Instruction::<Id>::local_goto_pos(instr),
@@ -248,6 +251,14 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
         }
     }
 
+    fn complexity(&self) -> u64 {
+        match self {
+            Instr::Ctrl(instr) => instr.complexity(),
+            Instr::Gfa(instr) => Instruction::<Id>::complexity(instr),
+            Instr::Reserved(instr) => Instruction::<Id>::complexity(instr),
+        }
+    }
+
     fn exec(&self, site: Site<Id>, core: &mut Core<Id, Self::Core>, context: &Self::Context<'_>) -> ExecStep<Site<Id>> {
         match self {
             Instr::Ctrl(instr) => {
@@ -256,10 +267,7 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
                 core.merge_subcore(subcore);
                 step
             }
-            Instr::Gfa(instr) => {
-                let step = instr.exec(site, core, context);
-                step
-            }
+            Instr::Gfa(instr) => instr.exec(site, core, context),
             Instr::Reserved(instr) => {
                 let mut subcore = core.subcore();
                 let step = instr.exec(site, &mut subcore, context);
@@ -272,34 +280,238 @@ impl<Id: SiteId> Instruction<Id> for Instr<Id> {
 
 #[cfg(test)]
 mod test {
-    use aluvm::{CoreConfig, Lib, LibId, LibSite, Vm};
-    use amplify::num::u256;
+    #![cfg_attr(coverage_nightly, coverage(off))]
+
+    use aluvm::LibId;
 
     use super::*;
-    use crate::zk_aluasm;
+    use crate::gfa::{Bits, ConstVal};
 
-    const CONFIG: CoreConfig = CoreConfig {
-        halt: true,
-        complexity_lim: None,
-    };
+    #[test]
+    fn test() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::Test { src: RegE::E1 });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), bset![RegE::E1]);
+        assert_eq!(instr.dst_regs(), none!());
+        assert_eq!(instr.src_reg_bytes(), 32);
+        assert_eq!(instr.dst_reg_bytes(), 0);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 256000);
+        assert_eq!(instr.complexity(), instr.base_complexity());
+    }
+
+    #[test]
+    fn clr() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::Clr { dst: RegE::E1 });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), none!());
+        assert_eq!(instr.dst_regs(), bset![RegE::E1]);
+        assert_eq!(instr.src_reg_bytes(), 0);
+        assert_eq!(instr.dst_reg_bytes(), 32);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 256000);
+        assert_eq!(instr.complexity(), instr.base_complexity());
+    }
 
     #[test]
     fn putd() {
-        const VAL: u256 = u256::from_inner([73864950, 463656, 3456556, 23456657]);
-        let code = zk_aluasm! {
-            mov EA, :VAL;
-        };
-        let lib = Lib::assemble(&code).unwrap();
-        let lib_id = lib.lib_id();
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::PutD {
+            dst: RegE::E1,
+            data: fe256::ZERO,
+        });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), none!());
+        assert_eq!(instr.dst_regs(), bset![RegE::E1]);
+        assert_eq!(instr.src_reg_bytes(), 0);
+        assert_eq!(instr.dst_reg_bytes(), 32);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 32);
+        assert_eq!(instr.base_complexity(), 768000);
+        assert_eq!(instr.complexity(), instr.base_complexity());
+    }
 
-        let mut vm = Vm::<Instr<LibId>>::with(CONFIG, default!());
-        let resolver = |id: LibId| {
-            assert_eq!(id, lib_id);
-            Some(&lib)
-        };
-        let res = vm.exec(LibSite::new(lib_id, 0), &(), resolver).is_ok();
-        assert!(res);
+    #[test]
+    fn putz() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::PutZ { dst: RegE::E1 });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), none!());
+        assert_eq!(instr.dst_regs(), bset![RegE::E1]);
+        assert_eq!(instr.src_reg_bytes(), 0);
+        assert_eq!(instr.dst_reg_bytes(), 32);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 256000);
+        assert_eq!(instr.complexity(), instr.base_complexity());
+    }
 
-        assert_eq!(vm.core.cx.get(RegE::EA), Some(fe256::from(VAL)));
+    #[test]
+    fn putv() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::PutV {
+            dst: RegE::E1,
+            val: ConstVal::ValFeMAX,
+        });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), none!());
+        assert_eq!(instr.dst_regs(), bset![RegE::E1]);
+        assert_eq!(instr.src_reg_bytes(), 0);
+        assert_eq!(instr.dst_reg_bytes(), 32);
+        assert_eq!(instr.op_data_bytes(), 1);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 264000);
+        assert_eq!(instr.complexity(), instr.base_complexity());
+    }
+
+    #[test]
+    fn fits() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::Fits {
+            src: RegE::E1,
+            bits: Bits::Bits8,
+        });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), bset![RegE::E1]);
+        assert_eq!(instr.dst_regs(), none!());
+        assert_eq!(instr.src_reg_bytes(), 32);
+        assert_eq!(instr.dst_reg_bytes(), 0);
+        assert_eq!(instr.op_data_bytes(), 1);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 264000);
+        assert_eq!(instr.complexity(), instr.base_complexity() * 2);
+    }
+
+    #[test]
+    fn mov() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::Mov {
+            dst: RegE::E1,
+            src: RegE::EA,
+        });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), bset![RegE::EA]);
+        assert_eq!(instr.dst_regs(), bset![RegE::E1]);
+        assert_eq!(instr.src_reg_bytes(), 32);
+        assert_eq!(instr.dst_reg_bytes(), 32);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 512000);
+        assert_eq!(instr.complexity(), instr.base_complexity());
+    }
+
+    #[test]
+    fn eq() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::Eq {
+            src1: RegE::E1,
+            src2: RegE::EA,
+        });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), bset![RegE::E1, RegE::EA]);
+        assert_eq!(instr.dst_regs(), none!());
+        assert_eq!(instr.src_reg_bytes(), 64);
+        assert_eq!(instr.dst_reg_bytes(), 0);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 512000);
+        assert_eq!(instr.complexity(), instr.base_complexity());
+    }
+
+    #[test]
+    fn neg() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::Neg {
+            dst: RegE::E1,
+            src: RegE::EA,
+        });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), bset![RegE::EA]);
+        assert_eq!(instr.dst_regs(), bset![RegE::E1]);
+        assert_eq!(instr.src_reg_bytes(), 32);
+        assert_eq!(instr.dst_reg_bytes(), 32);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 512000);
+        assert_eq!(instr.complexity(), instr.base_complexity() * 2);
+    }
+
+    #[test]
+    fn add() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::Add {
+            dst_src: RegE::E1,
+            src: RegE::EA,
+        });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), bset![RegE::EA, RegE::E1]);
+        assert_eq!(instr.dst_regs(), bset![RegE::E1]);
+        assert_eq!(instr.src_reg_bytes(), 64);
+        assert_eq!(instr.dst_reg_bytes(), 32);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 768000);
+        assert_eq!(instr.complexity(), instr.base_complexity() * 2);
+    }
+
+    #[test]
+    fn mul() {
+        let mut instr = Instr::<LibId>::Gfa(FieldInstr::Mul {
+            dst_src: RegE::E1,
+            src: RegE::EA,
+        });
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), instr.src_regs().union(&instr.dst_regs()).copied().collect());
+        assert_eq!(instr.src_regs(), bset![RegE::EA, RegE::E1]);
+        assert_eq!(instr.dst_regs(), bset![RegE::E1]);
+        assert_eq!(instr.src_reg_bytes(), 64);
+        assert_eq!(instr.dst_reg_bytes(), 32);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 768000);
+        assert_eq!(instr.complexity(), instr.base_complexity() * 2);
+    }
+
+    #[test]
+    fn reserved() {
+        let mut instr = Instr::<LibId>::Reserved(default!());
+        assert_eq!(instr.is_goto_target(), false);
+        assert_eq!(instr.local_goto_pos(), GotoTarget::None);
+        assert_eq!(instr.remote_goto_pos(), None);
+        assert_eq!(instr.regs(), none!());
+        assert_eq!(instr.src_regs(), none!());
+        assert_eq!(instr.dst_regs(), none!());
+        assert_eq!(instr.src_reg_bytes(), 0);
+        assert_eq!(instr.dst_reg_bytes(), 0);
+        assert_eq!(instr.op_data_bytes(), 0);
+        assert_eq!(instr.ext_data_bytes(), 0);
+        assert_eq!(instr.base_complexity(), 0);
+        assert_eq!(instr.complexity(), u64::MAX);
     }
 }
