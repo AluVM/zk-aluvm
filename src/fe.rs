@@ -132,11 +132,12 @@ impl FromStr for fe256 {
             .strip_suffix(".fe")
             .ok_or_else(|| ParseFeError::NoSuffix(s.to_owned()))?;
         let bytes = if s.len() % 2 == 1 { TinyBlob::from_hex(&format!("0{s}"))? } else { TinyBlob::from_hex(s)? };
-        let mut buf = [0u8; 32];
-        if bytes.len() > 32 {
-            return Err(hex::Error::InvalidLength(32, bytes.len()).into());
+        const BUF_SIZE: usize = 32;
+        let mut buf = [0u8; BUF_SIZE];
+        if bytes.len() > BUF_SIZE {
+            return Err(hex::Error::InvalidLength(BUF_SIZE, bytes.len()).into());
         }
-        buf[..bytes.len()].copy_from_slice(bytes.as_slice());
+        buf[(BUF_SIZE - bytes.len())..].copy_from_slice(bytes.as_slice());
         let val = u256::from_be_bytes(buf);
         Ok(Self(val))
     }
@@ -172,6 +173,24 @@ mod tests {
         assert_eq!(format!("{}", fe), s);
         assert_eq!(format!("{:#}", fe), s);
         assert_eq!(format!("{:?}", fe), "fe256(0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)");
+
+        let s = "0000000000000000000000000000000000000000000000000000000000000345.fe";
+        let fe = fe256::from_str(s).unwrap();
+        assert_eq!(format!("{}", fe), "345.fe");
+        assert_eq!(format!("{:#}", fe), s);
+        assert_eq!(format!("{:?}", fe), "fe256(0x0000000000000000000000000000000000000000000000000000000000000345)");
+
+        let s = "345.fe";
+        let fe = fe256::from_str(s).unwrap();
+        assert_eq!(format!("{}", fe), "345.fe");
+        assert_eq!(format!("{:#}", fe), "0000000000000000000000000000000000000000000000000000000000000345.fe");
+        assert_eq!(format!("{:?}", fe), "fe256(0x0000000000000000000000000000000000000000000000000000000000000345)");
+
+        let s = "1230000000000000000000000000000000000000000000000000000000000000.fe";
+        let fe = fe256::from_str(s).unwrap();
+        assert_eq!(format!("{}", fe), "1230000000000000000000000000000000000000000000000000000000000000.fe");
+        assert_eq!(format!("{:#}", fe), s);
+        assert_eq!(format!("{:?}", fe), "fe256(0x1230000000000000000000000000000000000000000000000000000000000000)");
     }
 
     #[test]
